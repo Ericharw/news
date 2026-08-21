@@ -92,7 +92,7 @@ export const TambahKegiatanView: React.FC<TambahKegiatanViewProps> = ({
               <li className="flex items-start gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#0072CE] mt-1.5 shrink-0" />
                 <span>
-                  <strong className="text-slate-800">Batch:</strong> Masukkan nomor batch/gelombang pelatihan.
+                  <strong className="text-slate-800">Tanggal / Batch:</strong> Masukkan tanggal pelaksanaan & nomor batch/gelombang (bisa pilih via kalender atau ketik manual).
                 </span>
               </li>
             </ul>

@@ -16,7 +16,11 @@ import {
   AlertTriangle
 } from "lucide-react";
 
-export const MasterJenisBiayaView: React.FC = () => {
+interface MasterJenisBiayaViewProps {
+  initialEditMode?: boolean;
+}
+
+export const MasterJenisBiayaView: React.FC<MasterJenisBiayaViewProps> = ({ initialEditMode = false }) => {
   const [items, setItems] = useState<MasterJenisBiayaItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -45,6 +49,9 @@ export const MasterJenisBiayaView: React.FC = () => {
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
         setItems(json.data);
+        if ((initialEditMode || window.location.pathname === "/master-jenis-biaya-edit") && json.data.length > 0) {
+          openEditModal(json.data[0]);
+        }
       }
     } catch (err) {
       console.error("Error fetching master jenis biaya:", err);
@@ -117,6 +124,16 @@ export const MasterJenisBiayaView: React.FC = () => {
     setEditingItem(item);
     setEditNama(item.nama);
     setEditKet(item.keterangan || "");
+    if (typeof window !== "undefined" && window.location.pathname !== "/master-jenis-biaya-edit") {
+      window.history.pushState(null, "", "/master-jenis-biaya-edit");
+    }
+  };
+
+  const closeEditModal = () => {
+    setEditingItem(null);
+    if (typeof window !== "undefined" && window.location.pathname === "/master-jenis-biaya-edit") {
+      window.history.pushState(null, "", "/master-jenis-biaya");
+    }
   };
 
   const handleEditJenisBiaya = async (e: React.FormEvent) => {
@@ -494,7 +511,7 @@ export const MasterJenisBiayaView: React.FC = () => {
                 <h3 className="font-extrabold text-slate-900 text-base">Edit Master Jenis Biaya</h3>
               </div>
               <button
-                onClick={() => setEditingItem(null)}
+                onClick={closeEditModal}
                 className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
               >
                 <X className="w-5 h-5" />
@@ -533,7 +550,7 @@ export const MasterJenisBiayaView: React.FC = () => {
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setEditingItem(null)}
+                  onClick={closeEditModal}
                   className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all"
                 >
                   Batal

@@ -21,6 +21,42 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
   onReset,
   isValidating = false
 }) => {
+  const datePickerRef = React.useRef<HTMLInputElement>(null);
+
+  const handleDatePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (val) {
+      const [year, month, day] = val.split("-");
+      if (year && month && day) {
+        const formattedDate = `${day}/${month}/${year}`;
+        const currentText = formValues.tanggalAwal || "";
+        const extraText = currentText.replace(/^\d{2}\/\d{2}\/\d{4}\s*/, "").trim();
+        const combined = extraText ? `${formattedDate} ${extraText}` : `${formattedDate} Batch 1`;
+
+        setFormValues({
+          ...formValues,
+          tanggalAwal: combined,
+          batch: extraText || "Batch 1"
+        });
+      }
+    }
+  };
+
+  const handleOpenCalendar = () => {
+    const el = datePickerRef.current as any;
+    if (el) {
+      try {
+        if (typeof el.showPicker === "function") {
+          el.showPicker();
+        } else if (typeof el.focus === "function") {
+          el.focus();
+        }
+      } catch {
+        // fallback
+      }
+    }
+  };
+
   return (
     <div
       id="tambah-kegiatan-form"
@@ -97,36 +133,50 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
           />
         </div>
 
-        {/* Grid: Tanggal Awal & Batch */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block font-bold text-slate-800 mb-1.5">
-              Tanggal Awal <span className="text-rose-500">*</span>
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                required
-                placeholder="20/08/2026"
-                value={formValues.tanggalAwal}
-                onChange={(e) => setFormValues({ ...formValues, tanggalAwal: e.target.value })}
-                className="w-full pl-3.5 pr-8 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white placeholder:text-slate-400 text-xs sm:text-sm font-medium"
-              />
-              <Calendar className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
-          </div>
-
-          <div>
-            <label className="block font-bold text-slate-800 mb-1.5">
-              Batch <span className="text-rose-500">*</span>
-            </label>
+        {/* Single Combined Input Field: Tanggal / Batch */}
+        <div>
+          <label className="block font-bold text-slate-800 mb-1.5">
+            Tanggal / Batch <span className="text-rose-500">*</span>
+          </label>
+          <div className="relative flex items-center">
+            {/* Free Text Manual Input */}
             <input
               type="text"
               required
-              placeholder="Batch 1"
-              value={formValues.batch}
-              onChange={(e) => setFormValues({ ...formValues, batch: e.target.value })}
-              className="w-full px-3.5 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white placeholder:text-slate-400 text-xs sm:text-sm font-medium"
+              placeholder="Contoh: 20/08/2026 Batch 1 atau ketik manual..."
+              value={
+                formValues.tanggalAwal && formValues.batch && !formValues.tanggalAwal.includes(formValues.batch) && formValues.batch !== "Batch 1"
+                  ? `${formValues.tanggalAwal} ${formValues.batch}`
+                  : formValues.tanggalAwal || ""
+              }
+              onChange={(e) => {
+                const val = e.target.value;
+                setFormValues({
+                  ...formValues,
+                  tanggalAwal: val,
+                  batch: val ? (val.includes("Batch") ? val : `Batch 1`) : "Batch 1"
+                });
+              }}
+              className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white placeholder:text-slate-400 transition-all text-xs sm:text-sm font-medium"
+            />
+
+            {/* Clickable Calendar Picker Icon Button */}
+            <button
+              type="button"
+              onClick={handleOpenCalendar}
+              className="absolute right-1.5 p-1.5 text-slate-400 hover:text-[#0072CE] hover:bg-sky-50 rounded-lg transition-all cursor-pointer"
+              title="Buka Kalender"
+            >
+              <Calendar className="w-4.5 h-4.5 text-slate-500 hover:text-[#0072CE]" />
+            </button>
+
+            {/* Hidden Native Date Input for Calendar Picker */}
+            <input
+              ref={datePickerRef}
+              type="date"
+              onChange={handleDatePickerChange}
+              className="opacity-0 absolute right-0 bottom-0 pointer-events-none w-0 h-0"
+              tabIndex={-1}
             />
           </div>
         </div>

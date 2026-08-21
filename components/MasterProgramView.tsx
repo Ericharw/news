@@ -16,7 +16,11 @@ import {
   AlertTriangle
 } from "lucide-react";
 
-export const MasterProgramView: React.FC = () => {
+interface MasterProgramViewProps {
+  initialEditMode?: boolean;
+}
+
+export const MasterProgramView: React.FC<MasterProgramViewProps> = ({ initialEditMode = false }) => {
   const [programs, setPrograms] = useState<MasterProgramItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -45,6 +49,9 @@ export const MasterProgramView: React.FC = () => {
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
         setPrograms(json.data);
+        if ((initialEditMode || window.location.pathname === "/master-program-edit") && json.data.length > 0) {
+          openEditModal(json.data[0]);
+        }
       }
     } catch (err) {
       console.error("Error fetching master programs:", err);
@@ -117,6 +124,16 @@ export const MasterProgramView: React.FC = () => {
     setEditingItem(item);
     setEditLabel(item.label);
     setEditCode(item.code);
+    if (typeof window !== "undefined" && window.location.pathname !== "/master-program-edit") {
+      window.history.pushState(null, "", "/master-program-edit");
+    }
+  };
+
+  const closeEditModal = () => {
+    setEditingItem(null);
+    if (typeof window !== "undefined" && window.location.pathname === "/master-program-edit") {
+      window.history.pushState(null, "", "/master-program");
+    }
   };
 
   const handleEditProgram = async (e: React.FormEvent) => {
@@ -491,7 +508,7 @@ export const MasterProgramView: React.FC = () => {
                 <h3 className="font-extrabold text-slate-900 text-base">Edit Master Program</h3>
               </div>
               <button
-                onClick={() => setEditingItem(null)}
+                onClick={closeEditModal}
                 className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
               >
                 <X className="w-5 h-5" />
@@ -531,7 +548,7 @@ export const MasterProgramView: React.FC = () => {
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setEditingItem(null)}
+                  onClick={closeEditModal}
                   className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all"
                 >
                   Batal

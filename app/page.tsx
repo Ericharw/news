@@ -71,8 +71,38 @@ export default function Home() {
     }
   };
 
+  const handleMenuChange = (menu: ActiveMenuType) => {
+    setActiveMenu(menu);
+    if (typeof window !== "undefined") {
+      let path = "/data-kegiatan";
+      if (menu === "tambah-kegiatan") path = "/tambah-kegiatan";
+      else if (menu === "master-program") path = "/master-program";
+      else if (menu === "master-keyword") path = "/master-keyword";
+      else if (menu === "master-jenis-biaya") path = "/master-jenis-biaya";
+
+      if (window.location.pathname !== path) {
+        window.history.pushState(null, "", path);
+      }
+    }
+  };
+
   useEffect(() => {
     refetchActivities();
+
+    const syncUrlMenu = () => {
+      if (typeof window !== "undefined") {
+        const path = window.location.pathname;
+        if (path === "/tambah-kegiatan") setActiveMenu("tambah-kegiatan");
+        else if (path === "/master-program" || path === "/master-program-edit") setActiveMenu("master-program");
+        else if (path === "/master-keyword" || path === "/master-keyword-edit") setActiveMenu("master-keyword");
+        else if (path === "/master-jenis-biaya" || path === "/master-jenis-biaya-edit") setActiveMenu("master-jenis-biaya");
+        else if (path === "/data-kegiatan" || path === "/") setActiveMenu("data-kegiatan");
+      }
+    };
+
+    syncUrlMenu();
+    window.addEventListener("popstate", syncUrlMenu);
+    return () => window.removeEventListener("popstate", syncUrlMenu);
   }, []);
 
   // Form Submit Handler -> Step 1: Validate against master_keywords in PostgreSQL
@@ -240,7 +270,7 @@ export default function Home() {
       {/* LEFT SIDEBAR */}
       <Sidebar
         activeMenu={activeMenu}
-        setActiveMenu={setActiveMenu}
+        setActiveMenu={handleMenuChange}
         isKegiatanOpen={isKegiatanOpen}
         setIsKegiatanOpen={setIsKegiatanOpen}
         sidebarCollapsed={sidebarCollapsed}

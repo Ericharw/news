@@ -17,7 +17,11 @@ import {
   ShieldAlert
 } from "lucide-react";
 
-export const MasterKeywordView: React.FC = () => {
+interface MasterKeywordViewProps {
+  initialEditMode?: boolean;
+}
+
+export const MasterKeywordView: React.FC<MasterKeywordViewProps> = ({ initialEditMode = false }) => {
   const [keywords, setKeywords] = useState<MasterKeywordItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -53,6 +57,9 @@ export const MasterKeywordView: React.FC = () => {
           })
         );
         setKeywords(formatted);
+        if ((initialEditMode || window.location.pathname === "/master-keyword-edit") && formatted.length > 0) {
+          openEditModal(formatted[0]);
+        }
       }
     } catch (err) {
       console.error("Error fetching master keywords:", err);
@@ -128,6 +135,16 @@ export const MasterKeywordView: React.FC = () => {
     setEditingItem(item);
     setEditKeyword(item.keyword);
     setEditCategory(item.kategoriTransaksi || "Non-Allowable Cost (NAC)");
+    if (typeof window !== "undefined" && window.location.pathname !== "/master-keyword-edit") {
+      window.history.pushState(null, "", "/master-keyword-edit");
+    }
+  };
+
+  const closeEditModal = () => {
+    setEditingItem(null);
+    if (typeof window !== "undefined" && window.location.pathname === "/master-keyword-edit") {
+      window.history.pushState(null, "", "/master-keyword");
+    }
   };
 
   const handleEditKeyword = async (e: React.FormEvent) => {
@@ -504,7 +521,7 @@ export const MasterKeywordView: React.FC = () => {
                 <h3 className="font-extrabold text-slate-900 text-base">Edit Master Keyword</h3>
               </div>
               <button
-                onClick={() => setEditingItem(null)}
+                onClick={closeEditModal}
                 className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
               >
                 <X className="w-5 h-5" />
@@ -542,7 +559,7 @@ export const MasterKeywordView: React.FC = () => {
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setEditingItem(null)}
+                  onClick={closeEditModal}
                   className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all"
                 >
                   Batal
