@@ -8,6 +8,7 @@ import {
   PlusCircle,
   Trash2,
   Eye,
+  Pencil,
   BookOpen,
   RefreshCw,
   X,
@@ -26,11 +27,16 @@ export const MasterProgramView: React.FC = () => {
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [viewingItem, setViewingItem] = useState<MasterProgramItem | null>(null);
+  const [editingItem, setEditingItem] = useState<MasterProgramItem | null>(null);
   const [deletingItem, setDeletingItem] = useState<MasterProgramItem | null>(null);
 
-  // Form State
+  // Add Form State
   const [newLabel, setNewLabel] = useState("");
   const [newCode, setNewCode] = useState("");
+
+  // Edit Form State
+  const [editLabel, setEditLabel] = useState("");
+  const [editCode, setEditCode] = useState("");
 
   const fetchPrograms = async () => {
     setIsLoading(true);
@@ -107,6 +113,66 @@ export const MasterProgramView: React.FC = () => {
     }
   };
 
+  const openEditModal = (item: MasterProgramItem) => {
+    setEditingItem(item);
+    setEditLabel(item.label);
+    setEditCode(item.code);
+  };
+
+  const handleEditProgram = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem) return;
+
+    if (!editLabel.trim() || !editCode.trim()) {
+      Swal.fire({
+        icon: "warning",
+        title: "Input Tidak Lengkap",
+        text: "Harap lengkapi Nama Program dan Kode Singkatan.",
+        confirmButtonColor: "#0072CE",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/master/programs/${editingItem.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label: editLabel.trim(), code: editCode.trim().toUpperCase().slice(0, 6) }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setEditingItem(null);
+        fetchPrograms();
+
+        Swal.fire({
+          icon: "success",
+          title: "Berhasil Memperbarui Data!",
+          text: "Master Program berhasil diperbarui di database PostgreSQL.",
+          confirmButtonColor: "#0072CE",
+          timer: 2500,
+        });
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Gagal Memperbarui Data",
+          text: json.error || "Gagal memperbarui data di database.",
+          confirmButtonColor: "#e11d48",
+        });
+      }
+    } catch (err) {
+      console.error("Error editing master program:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Gagal Memperbarui Data",
+        text: (err as Error).message || "Terjadi kesalahan saat memperbarui data.",
+        confirmButtonColor: "#e11d48",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const confirmDeleteProgram = async () => {
     if (!deletingItem) return;
 
@@ -160,10 +226,10 @@ export const MasterProgramView: React.FC = () => {
   return (
     <div className="bg-white rounded-2xl border border-slate-200/90 p-5 md:p-6 shadow-xs transition-all space-y-6">
       {/* Card Header & Top Controls */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">Master Program</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Master Program</h2>
             <span className="px-2.5 py-0.5 rounded-full bg-[#0072CE]/10 text-[#0072CE] text-xs font-bold">
               {filteredPrograms.length} Item
             </span>
@@ -173,18 +239,18 @@ export const MasterProgramView: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto">
+        <div className="flex items-center gap-3">
           {/* Refresh Button */}
           <button
             onClick={fetchPrograms}
-            className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 rounded-xl transition-all shrink-0"
+            className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 rounded-xl transition-all"
             title="Refresh Data DB"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-[#0072CE]" : ""}`} />
           </button>
 
           {/* Search Field */}
-          <div className="relative flex-1 min-w-[160px] sm:w-64">
+          <div className="relative flex-1 sm:w-64">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
@@ -209,10 +275,10 @@ export const MasterProgramView: React.FC = () => {
           {/* Yellow CTA Add Button */}
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 bg-[#FFC72C] hover:bg-[#F2B81A] text-slate-950 rounded-xl text-xs sm:text-sm font-extrabold transition-all shadow-xs border border-amber-300 shrink-0 cursor-pointer w-full sm:w-auto"
+            className="flex items-center gap-2 px-4 py-2 bg-[#FFC72C] hover:bg-[#F2B81A] text-slate-950 rounded-xl text-xs sm:text-sm font-extrabold transition-all shadow-xs border border-amber-300 shrink-0 cursor-pointer"
           >
             <PlusCircle className="w-4 h-4 stroke-[2.5]" />
-            <span>Tambah Program</span>
+            <span className="hidden sm:inline">Tambah Program</span>
           </button>
         </div>
       </div>
@@ -275,6 +341,15 @@ export const MasterProgramView: React.FC = () => {
                           <Eye className="w-4 h-4" />
                         </button>
 
+                        {/* Edit Icon Button */}
+                        <button
+                          onClick={() => openEditModal(item)}
+                          className="w-8 h-8 rounded-xl bg-amber-50 hover:bg-[#FFC72C] text-amber-700 hover:text-slate-950 flex items-center justify-center transition-all shadow-2xs"
+                          title="Edit Master Program"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+
                         {/* Delete Icon Button */}
                         <button
                           onClick={() => setDeletingItem(item)}
@@ -317,11 +392,10 @@ export const MasterProgramView: React.FC = () => {
                   {showEllipsis && <span className="px-1 text-slate-400">...</span>}
                   <button
                     onClick={() => setCurrentPage(page)}
-                    className={`w-8 h-8 rounded-xl font-extrabold flex items-center justify-center transition-all ${
-                      currentPage === page
-                        ? "bg-[#0072CE] text-white shadow-xs"
-                        : "border border-slate-200 text-slate-700 hover:bg-slate-100"
-                    }`}
+                    className={`w-8 h-8 rounded-xl font-extrabold flex items-center justify-center transition-all ${currentPage === page
+                      ? "bg-[#0072CE] text-white shadow-xs"
+                      : "border border-slate-200 text-slate-700 hover:bg-slate-100"
+                      }`}
                   >
                     {page}
                   </button>
@@ -372,7 +446,7 @@ export const MasterProgramView: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-800 mb-1.5">
-                  Kode / Singkatan (Maks 6 Huruf) <span className="text-rose-500">*</span>
+                  Kode / Singkatan <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -407,6 +481,75 @@ export const MasterProgramView: React.FC = () => {
         </div>
       )}
 
+      {/* MODAL EDIT MASTER PROGRAM */}
+      {editingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in overflow-y-auto">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-md my-auto overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-100 bg-amber-50/50">
+              <div className="flex items-center gap-2">
+                <Pencil className="w-5 h-5 text-amber-600" />
+                <h3 className="font-extrabold text-slate-900 text-base">Edit Master Program</h3>
+              </div>
+              <button
+                onClick={() => setEditingItem(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditProgram} className="p-5 sm:p-6 space-y-4 overflow-y-auto">
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                  Nama Program Resmi <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Program Edukasi Kebencanaan (EDUKAT)"
+                  value={editLabel}
+                  onChange={(e) => setEditLabel(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                  Kode / Singkatan <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  maxLength={6}
+                  placeholder="Contoh: EDUKAT"
+                  value={editCode}
+                  onChange={(e) => setEditCode(e.target.value.toUpperCase().slice(0, 6))}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold uppercase focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingItem(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-5 py-2 bg-[#0072CE] hover:bg-[#005bb5] text-white font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-xs border border-[#00A3E0]/30 disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{isSubmitting ? "Menyimpan..." : "Update Program"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* MODAL 2: VIEW DETAIL MASTER PROGRAM */}
       {viewingItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in">
@@ -426,13 +569,6 @@ export const MasterProgramView: React.FC = () => {
 
             <div className="p-6 space-y-4 text-xs">
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-3">
-                <div>
-                  <span className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider block mb-0.5">
-                    ID Database PostgreSQL
-                  </span>
-                  <span className="font-bold text-slate-800 text-sm">#{viewingItem.id}</span>
-                </div>
-
                 <div>
                   <span className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider block mb-0.5">
                     Nama Program Resmi

@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { ActivityItem, ActivityFormValues, ActiveMenuType } from "@/types/activity";
 import { INITIAL_ACTIVITIES } from "@/data/initialActivities";
+import Swal from "sweetalert2";
 
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
@@ -52,29 +53,12 @@ export default function Home() {
     batch: ""
   });
 
+  // Toast Helper
   const showNotification = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 3000);
   };
 
-  // Fetch activities from PostgreSQL API
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const res = await fetch("/api/activities");
-        const json = await res.json();
-        if (json.success && Array.isArray(json.data)) {
-          setDataList(json.data);
-        }
-      } catch (err) {
-        console.error("Error fetching activities from PostgreSQL:", err);
-      }
-    }
-    loadData();
-  }, []);
-
+  // Fetch live activities from PostgreSQL DB
   const refetchActivities = async () => {
     try {
       const res = await fetch("/api/activities");
@@ -83,15 +67,24 @@ export default function Home() {
         setDataList(json.data);
       }
     } catch (err) {
-      console.error("Error fetching activities from PostgreSQL:", err);
+      console.error("Error fetching activities from DB:", err);
     }
   };
+
+  useEffect(() => {
+    refetchActivities();
+  }, []);
 
   // Form Submit Handler -> Step 1: Validate against master_keywords in PostgreSQL
   const handleValidateAndPreview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formValues.namaProgram || !formValues.subjekKegiatan || !formValues.jenisBiaya) {
-      alert("Harap lengkapi seluruh kolom yang bertanda bintang (*).");
+      Swal.fire({
+        icon: "warning",
+        title: "Input Tidak Lengkap",
+        text: "Harap lengkapi seluruh kolom yang bertanda bintang (*).",
+        confirmButtonColor: "#0072CE",
+      });
       return;
     }
 
@@ -109,11 +102,21 @@ export default function Home() {
         setDetectedKeywords(json.detectedKeywords || []);
         setIsPreviewOpen(true);
       } else {
-        alert(json.error || "Gagal melakukan validasi keyword NAC.");
+        Swal.fire({
+          icon: "error",
+          title: "Gagal Validasi",
+          text: json.error || "Gagal melakukan validasi keyword NAC.",
+          confirmButtonColor: "#e11d48",
+        });
       }
     } catch (err) {
       console.error("Error validating form:", err);
-      alert("Terjadi kesalahan saat menghubungi API validasi.");
+      Swal.fire({
+        icon: "error",
+        title: "Gagal Validasi",
+        text: (err as Error).message || "Terjadi kesalahan saat menghubungi API validasi.",
+        confirmButtonColor: "#e11d48",
+      });
     } finally {
       setIsValidating(false);
     }
@@ -131,16 +134,33 @@ export default function Home() {
       const json = await res.json();
       if (json.success) {
         setIsPreviewOpen(false);
-        showNotification("Data kegiatan baru berhasil disimpan ke PostgreSQL!");
         handleResetForm();
         refetchActivities();
         setActiveMenu("data-kegiatan");
+
+        Swal.fire({
+          icon: "success",
+          title: "Berhasil Menyimpan Data!",
+          text: "Data kegiatan baru berhasil disimpan ke database PostgreSQL.",
+          confirmButtonColor: "#0072CE",
+          timer: 2500,
+        });
       } else {
-        alert(json.error || "Gagal menyimpan data ke PostgreSQL.");
+        Swal.fire({
+          icon: "error",
+          title: "Gagal Menyimpan Data",
+          text: json.error || "Gagal menyimpan data ke PostgreSQL.",
+          confirmButtonColor: "#e11d48",
+        });
       }
     } catch (err) {
       console.error("Error submitting form:", err);
-      alert("Terjadi kesalahan saat menyimpan ke database.");
+      Swal.fire({
+        icon: "error",
+        title: "Gagal Menyimpan Data",
+        text: (err as Error).message || "Terjadi kesalahan saat menyimpan ke database.",
+        confirmButtonColor: "#e11d48",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -166,14 +186,30 @@ export default function Home() {
       });
       const json = await res.json();
       if (json.success) {
-        showNotification("Data kegiatan berhasil dihapus dari PostgreSQL!");
         refetchActivities();
+        Swal.fire({
+          icon: "success",
+          title: "Berhasil Dihapus!",
+          text: "Data kegiatan telah berhasil dihapus dari database PostgreSQL.",
+          confirmButtonColor: "#0072CE",
+          timer: 2000,
+        });
       } else {
-        alert(json.error || "Gagal menghapus data dari PostgreSQL.");
+        Swal.fire({
+          icon: "error",
+          title: "Gagal Menghapus Data",
+          text: json.error || "Gagal menghapus data dari PostgreSQL.",
+          confirmButtonColor: "#e11d48",
+        });
       }
     } catch (err) {
       console.error("Error deleting item:", err);
-      alert("Terjadi kesalahan saat menghapus data.");
+      Swal.fire({
+        icon: "error",
+        title: "Gagal Menghapus Data",
+        text: (err as Error).message || "Terjadi kesalahan saat menghapus data.",
+        confirmButtonColor: "#e11d48",
+      });
     } finally {
       setDeletingId(null);
     }

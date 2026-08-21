@@ -8,6 +8,7 @@ import {
   PlusCircle,
   Trash2,
   Eye,
+  Pencil,
   DollarSign,
   RefreshCw,
   X,
@@ -26,11 +27,16 @@ export const MasterJenisBiayaView: React.FC = () => {
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [viewingItem, setViewingItem] = useState<MasterJenisBiayaItem | null>(null);
+  const [editingItem, setEditingItem] = useState<MasterJenisBiayaItem | null>(null);
   const [deletingItem, setDeletingItem] = useState<MasterJenisBiayaItem | null>(null);
 
-  // Form State
+  // Add Form State
   const [newNama, setNewNama] = useState("");
   const [newKet, setNewKet] = useState("");
+
+  // Edit Form State
+  const [editNama, setEditNama] = useState("");
+  const [editKet, setEditKet] = useState("");
 
   const fetchJenisBiaya = async () => {
     setIsLoading(true);
@@ -100,6 +106,66 @@ export const MasterJenisBiayaView: React.FC = () => {
         icon: "error",
         title: "Gagal Menambahkan Data",
         text: (err as Error).message || "Terjadi kesalahan saat menghubungi server.",
+        confirmButtonColor: "#e11d48",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openEditModal = (item: MasterJenisBiayaItem) => {
+    setEditingItem(item);
+    setEditNama(item.nama);
+    setEditKet(item.keterangan || "");
+  };
+
+  const handleEditJenisBiaya = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem) return;
+
+    if (!editNama.trim()) {
+      Swal.fire({
+        icon: "warning",
+        title: "Input Tidak Lengkap",
+        text: "Harap isi Nama Jenis Biaya.",
+        confirmButtonColor: "#0072CE",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/master/jenis-biaya/${editingItem.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nama: editNama.trim(), keterangan: editKet.trim().toUpperCase().slice(0, 6) }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setEditingItem(null);
+        fetchJenisBiaya();
+
+        Swal.fire({
+          icon: "success",
+          title: "Berhasil Memperbarui Data!",
+          text: "Master Jenis Biaya berhasil diperbarui di database PostgreSQL.",
+          confirmButtonColor: "#0072CE",
+          timer: 2500,
+        });
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Gagal Memperbarui Data",
+          text: json.error || "Gagal memperbarui data di database.",
+          confirmButtonColor: "#e11d48",
+        });
+      }
+    } catch (err) {
+      console.error("Error editing master jenis biaya:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Gagal Memperbarui Data",
+        text: (err as Error).message || "Terjadi kesalahan saat memperbarui data.",
         confirmButtonColor: "#e11d48",
       });
     } finally {
@@ -278,6 +344,15 @@ export const MasterJenisBiayaView: React.FC = () => {
                           <Eye className="w-4 h-4" />
                         </button>
 
+                        {/* Edit Icon Button */}
+                        <button
+                          onClick={() => openEditModal(item)}
+                          className="w-8 h-8 rounded-xl bg-amber-50 hover:bg-[#FFC72C] text-amber-700 hover:text-slate-950 flex items-center justify-center transition-all shadow-2xs"
+                          title="Edit Master Jenis Biaya"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+
                         {/* Delete Icon Button */}
                         <button
                           onClick={() => setDeletingItem(item)}
@@ -409,6 +484,74 @@ export const MasterJenisBiayaView: React.FC = () => {
         </div>
       )}
 
+      {/* MODAL EDIT MASTER JENIS BIAYA */}
+      {editingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in overflow-y-auto">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-md my-auto overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-100 bg-amber-50/50">
+              <div className="flex items-center gap-2">
+                <Pencil className="w-5 h-5 text-amber-600" />
+                <h3 className="font-extrabold text-slate-900 text-base">Edit Master Jenis Biaya</h3>
+              </div>
+              <button
+                onClick={() => setEditingItem(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditJenisBiaya} className="p-5 sm:p-6 space-y-4 overflow-y-auto">
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                  Nama Jenis Biaya <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: 5.2 SARANA / Honorarium"
+                  value={editNama}
+                  onChange={(e) => setEditNama(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                  Singkatan / Kode (Maks 6 Huruf)
+                </label>
+                <input
+                  type="text"
+                  maxLength={6}
+                  placeholder="Contoh: TJBA (Maks 6 Karakter)"
+                  value={editKet}
+                  onChange={(e) => setEditKet(e.target.value.toUpperCase().slice(0, 6))}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold uppercase focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingItem(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-5 py-2 bg-[#0072CE] hover:bg-[#005bb5] text-white font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-xs border border-[#00A3E0]/30 disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{isSubmitting ? "Menyimpan..." : "Update Jenis Biaya"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* MODAL 2: VIEW DETAIL MASTER JENIS BIAYA */}
       {viewingItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in overflow-y-auto">
@@ -428,13 +571,6 @@ export const MasterJenisBiayaView: React.FC = () => {
 
             <div className="p-5 sm:p-6 space-y-4 text-xs overflow-y-auto">
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-3">
-                <div>
-                  <span className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider block mb-0.5">
-                    ID Database PostgreSQL
-                  </span>
-                  <span className="font-bold text-slate-800 text-sm">#{viewingItem.id}</span>
-                </div>
-
                 <div>
                   <span className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider block mb-0.5">
                     Nama Jenis Biaya

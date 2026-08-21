@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { ShieldCheck, Calendar, ChevronDown, RotateCcw, PlusCircle } from "lucide-react";
+import React from "react";
+import { ShieldCheck, Calendar, RotateCcw, PlusCircle } from "lucide-react";
 import { ActivityFormValues } from "@/types/activity";
 import { ProgramSearchableSelect } from "@/components/ProgramSearchableSelect";
+import { JenisBiayaSearchableSelect } from "@/components/JenisBiayaSearchableSelect";
 
 interface ActivityFormProps {
   formValues: ActivityFormValues;
@@ -20,29 +21,6 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
   onReset,
   isValidating = false
 }) => {
-  const [jenisBiayaOptions, setJenisBiayaOptions] = useState<string[]>([
-    "5.2 SARANA",
-    "Perjalanan Dinas",
-    "Konsumsi",
-    "Akomodasi",
-  ]);
-
-  // Fetch Master Jenis Biaya from PostgreSQL API
-  useEffect(() => {
-    async function loadJenisBiaya() {
-      try {
-        const res = await fetch("/api/master/jenis-biaya");
-        const json = await res.json();
-        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-          setJenisBiayaOptions(json.data.map((item: { nama: string }) => item.nama));
-        }
-      } catch (err) {
-        console.error("Error loading master jenis biaya:", err);
-      }
-    }
-    loadJenisBiaya();
-  }, []);
-
   return (
     <div
       id="tambah-kegiatan-form"
@@ -93,29 +71,16 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
           />
         </div>
 
-        {/* Jenis Biaya */}
+        {/* Jenis Biaya (Searchable Dropdown) */}
         <div>
           <label className="block font-bold text-slate-800 mb-1.5">
             Jenis Biaya <span className="text-rose-500">*</span>
           </label>
-          <div className="relative">
-            <select
-              required
-              value={formValues.jenisBiaya}
-              onChange={(e) => setFormValues({ ...formValues, jenisBiaya: e.target.value })}
-              className="w-full px-3.5 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white appearance-none text-slate-800 font-medium text-xs sm:text-sm cursor-pointer"
-            >
-              <option value="" disabled>
-                -- Pilih jenis biaya --
-              </option>
-              {jenisBiayaOptions.map((opt, idx) => (
-                <option key={idx} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
+          <JenisBiayaSearchableSelect
+            value={formValues.jenisBiaya}
+            onChange={(val) => setFormValues({ ...formValues, jenisBiaya: val })}
+            required
+          />
         </div>
 
         {/* Objek Kegiatan */}

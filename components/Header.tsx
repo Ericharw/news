@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Menu, Bell, User, ChevronDown, Zap, LogOut, Settings, ShieldCheck } from "lucide-react";
 import { ActiveMenuType } from "@/types/activity";
+import Swal from "sweetalert2";
 
 interface HeaderProps {
   activeMenu: ActiveMenuType;
@@ -36,7 +37,13 @@ export const Header: React.FC<HeaderProps> = ({
 
   const handleLogout = () => {
     setShowProfileDropdown(false);
-    alert("Logout berhasil dari sistem PT PLN (Persero).");
+    Swal.fire({
+      icon: "success",
+      title: "Logout Berhasil!",
+      text: "Anda telah keluar dari sistem PT PLN (Persero).",
+      confirmButtonColor: "#0072CE",
+      timer: 2000,
+    });
   };
 
   return (
@@ -121,7 +128,12 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   onClick={() => {
                     setShowProfileDropdown(false);
-                    alert("Membuka Pengaturan Profil...");
+                    Swal.fire({
+                      icon: "info",
+                      title: "Pengaturan Profil",
+                      text: "Halaman pengaturan profil administrator PT PLN.",
+                      confirmButtonColor: "#0072CE",
+                    });
                   }}
                   className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 font-semibold transition-all"
                 >

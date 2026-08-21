@@ -8,6 +8,7 @@ import {
   PlusCircle,
   Trash2,
   Eye,
+  Pencil,
   KeyRound,
   RefreshCw,
   X,
@@ -27,11 +28,16 @@ export const MasterKeywordView: React.FC = () => {
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [viewingItem, setViewingItem] = useState<MasterKeywordItem | null>(null);
+  const [editingItem, setEditingItem] = useState<MasterKeywordItem | null>(null);
   const [deletingItem, setDeletingItem] = useState<MasterKeywordItem | null>(null);
 
-  // Form State
+  // Add Form State
   const [newKeyword, setNewKeyword] = useState("");
   const [newCategory, setNewCategory] = useState("");
+
+  // Edit Form State
+  const [editKeyword, setEditKeyword] = useState("");
+  const [editCategory, setEditCategory] = useState("");
 
   const fetchKeywords = async () => {
     setIsLoading(true);
@@ -111,6 +117,69 @@ export const MasterKeywordView: React.FC = () => {
         icon: "error",
         title: "Gagal Menambahkan Data",
         text: (err as Error).message || "Terjadi kesalahan saat menambah data.",
+        confirmButtonColor: "#e11d48",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openEditModal = (item: MasterKeywordItem) => {
+    setEditingItem(item);
+    setEditKeyword(item.keyword);
+    setEditCategory(item.kategoriTransaksi || "Non-Allowable Cost (NAC)");
+  };
+
+  const handleEditKeyword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem) return;
+
+    if (!editKeyword.trim()) {
+      Swal.fire({
+        icon: "warning",
+        title: "Input Tidak Lengkap",
+        text: "Harap isi Kata Kunci (Keyword).",
+        confirmButtonColor: "#e11d48",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/keywords/${editingItem.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          keyword: editKeyword.trim(),
+          tipeTransaksi: editCategory.trim() || "Non-Allowable Cost (NAC)",
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setEditingItem(null);
+        fetchKeywords();
+
+        Swal.fire({
+          icon: "success",
+          title: "Berhasil Memperbarui Data!",
+          text: "Master Keyword berhasil diperbarui di database PostgreSQL.",
+          confirmButtonColor: "#0072CE",
+          timer: 2500,
+        });
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Gagal Memperbarui Data",
+          text: json.error || "Gagal memperbarui data di database.",
+          confirmButtonColor: "#e11d48",
+        });
+      }
+    } catch (err) {
+      console.error("Error editing master keyword:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Gagal Memperbarui Data",
+        text: (err as Error).message || "Terjadi kesalahan saat memperbarui data.",
         confirmButtonColor: "#e11d48",
       });
     } finally {
@@ -286,6 +355,15 @@ export const MasterKeywordView: React.FC = () => {
                           <Eye className="w-4 h-4" />
                         </button>
 
+                        {/* Edit Icon Button */}
+                        <button
+                          onClick={() => openEditModal(item)}
+                          className="w-8 h-8 rounded-xl bg-amber-50 hover:bg-[#FFC72C] text-amber-700 hover:text-slate-950 flex items-center justify-center transition-all shadow-2xs"
+                          title="Edit Master Keyword"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+
                         {/* Delete Icon Button */}
                         <button
                           onClick={() => setDeletingItem(item)}
@@ -416,6 +494,73 @@ export const MasterKeywordView: React.FC = () => {
         </div>
       )}
 
+      {/* MODAL EDIT MASTER KEYWORD */}
+      {editingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in overflow-y-auto">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-md my-auto overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-100 bg-rose-50/50">
+              <div className="flex items-center gap-2">
+                <Pencil className="w-5 h-5 text-rose-600" />
+                <h3 className="font-extrabold text-slate-900 text-base">Edit Master Keyword</h3>
+              </div>
+              <button
+                onClick={() => setEditingItem(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditKeyword} className="p-5 sm:p-6 space-y-4 overflow-y-auto">
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                  Kata Kunci (Keyword NAC) <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: ALKOHOL / GRATIFIKASI / WHISKY"
+                  value={editKeyword}
+                  onChange={(e) => setEditKeyword(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-rose-700 uppercase focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                  Tipe / Kategori Transaksi
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Non-Allowable Cost (NAC)"
+                  value={editCategory}
+                  onChange={(e) => setEditCategory(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingItem(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-xs transition-all disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{isSubmitting ? "Menyimpan..." : "Update Keyword"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* MODAL 2: VIEW DETAIL MASTER KEYWORD */}
       {viewingItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in">
@@ -435,13 +580,6 @@ export const MasterKeywordView: React.FC = () => {
 
             <div className="p-6 space-y-4 text-xs">
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-3">
-                <div>
-                  <span className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider block mb-0.5">
-                    ID Database PostgreSQL
-                  </span>
-                  <span className="font-bold text-slate-800 text-sm">#{viewingItem.id}</span>
-                </div>
-
                 <div>
                   <span className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider block mb-0.5">
                     Kata Kunci (Pattern)
