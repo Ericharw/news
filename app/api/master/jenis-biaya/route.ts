@@ -7,7 +7,7 @@ let memoryJenisBiaya: MasterJenisBiayaItem[] = [];
 // GET /api/master/jenis-biaya - Fetch all master jenis biaya from PostgreSQL
 export async function GET() {
   try {
-    const result = await pool.query("SELECT * FROM master_jenis_biaya ORDER BY id ASC;");
+    const result = await pool.query("SELECT * FROM master_jenis_biaya ORDER BY id DESC;");
     const items: MasterJenisBiayaItem[] = result.rows.map((row) => ({
       id: row.id,
       nama: row.jenis_biaya || row.nama || "",
@@ -35,25 +35,15 @@ export async function POST(request: Request) {
     }
 
     const cleanNama = nama.trim();
-    const cleanKet = keterangan ? keterangan.trim() : "";
+    const cleanKet = keterangan ? keterangan.trim().toUpperCase().substring(0, 6) : "";
 
     try {
-      let result;
-      try {
-        result = await pool.query(
-          `INSERT INTO master_jenis_biaya (jenis_biaya, singkatan)
-           VALUES ($1, $2)
-           RETURNING *;`,
-          [cleanNama, cleanKet]
-        );
-      } catch {
-        result = await pool.query(
-          `INSERT INTO master_jenis_biaya (nama, keterangan)
-           VALUES ($1, $2)
-           RETURNING *;`,
-          [cleanNama, cleanKet]
-        );
-      }
+      const result = await pool.query(
+        `INSERT INTO master_jenis_biaya (jenis_biaya, singkatan)
+         VALUES ($1, $2)
+         RETURNING *;`,
+        [cleanNama, cleanKet]
+      );
 
       const row = result.rows[0];
       const newItem: MasterJenisBiayaItem = {
@@ -64,14 +54,11 @@ export async function POST(request: Request) {
       memoryJenisBiaya.unshift(newItem);
       return NextResponse.json({ success: true, data: newItem }, { status: 201 });
     } catch (dbErr) {
-      console.warn("POST Master Jenis Biaya warning, operating in memory fallback:", (dbErr as Error).message);
-      const newItem: MasterJenisBiayaItem = {
-        id: Date.now(),
-        nama: cleanNama,
-        keterangan: cleanKet,
-      };
-      memoryJenisBiaya = [newItem, ...memoryJenisBiaya];
-      return NextResponse.json({ success: true, data: newItem }, { status: 201 });
+      console.error("POST Master Jenis Biaya DB Error:", (dbErr as Error).message);
+      return NextResponse.json(
+        { success: false, error: (dbErr as Error).message || "Gagal menyimpan data ke database PostgreSQL." },
+        { status: 400 }
+      );
     }
   } catch (error: unknown) {
     console.error("POST Master Jenis Biaya Error:", error);

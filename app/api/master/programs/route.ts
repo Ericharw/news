@@ -38,7 +38,7 @@ export async function ensureProgramTable() {
 export async function GET() {
   try {
     await ensureProgramTable();
-    const result = await pool.query("SELECT * FROM master_program ORDER BY id ASC;");
+    const result = await pool.query("SELECT * FROM master_program ORDER BY id DESC;");
     const programs: MasterProgramItem[] = result.rows.map((row) => ({
       id: row.id,
       label: row.nama_program || row.label,
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
     }
 
     const cleanLabel = label.trim();
-    const cleanCode = code.trim().toUpperCase();
+    const cleanCode = code.trim().toUpperCase().substring(0, 6);
 
     try {
       await ensureProgramTable();
@@ -85,14 +85,11 @@ export async function POST(request: Request) {
       memoryPrograms.unshift(newItem);
       return NextResponse.json({ success: true, data: newItem }, { status: 201 });
     } catch (dbErr) {
-      console.warn("POST Master Program warning, operating in memory fallback:", (dbErr as Error).message);
-      const newItem: MasterProgramItem = {
-        id: Date.now(),
-        label: cleanLabel,
-        code: cleanCode,
-      };
-      memoryPrograms = [newItem, ...memoryPrograms];
-      return NextResponse.json({ success: true, data: newItem }, { status: 201 });
+      console.error("POST Master Program DB Error:", (dbErr as Error).message);
+      return NextResponse.json(
+        { success: false, error: (dbErr as Error).message || "Gagal menyimpan data ke database PostgreSQL." },
+        { status: 400 }
+      );
     }
   } catch (error: unknown) {
     console.error("POST Master Program Error:", error);

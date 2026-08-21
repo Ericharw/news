@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { MasterJenisBiayaItem } from "@/types/activity";
+import Swal from "sweetalert2";
 import {
   Search,
   PlusCircle,
@@ -53,7 +54,12 @@ export const MasterJenisBiayaView: React.FC = () => {
   const handleAddJenisBiaya = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newNama.trim()) {
-      alert("Harap isi Nama Jenis Biaya.");
+      Swal.fire({
+        icon: "warning",
+        title: "Input Tidak Lengkap",
+        text: "Harap isi Nama Jenis Biaya.",
+        confirmButtonColor: "#0072CE",
+      });
       return;
     }
 
@@ -68,14 +74,34 @@ export const MasterJenisBiayaView: React.FC = () => {
       if (json.success) {
         setNewNama("");
         setNewKet("");
+        setSearchQuery("");
+        setCurrentPage(1);
         setIsAddModalOpen(false);
         fetchJenisBiaya();
+
+        Swal.fire({
+          icon: "success",
+          title: "Berhasil Menyimpan Data!",
+          text: "Master Jenis Biaya baru berhasil tersimpan ke database PostgreSQL.",
+          confirmButtonColor: "#0072CE",
+          timer: 2500,
+        });
       } else {
-        alert(json.error || "Gagal menambah Master Jenis Biaya.");
+        Swal.fire({
+          icon: "error",
+          title: "Gagal Menambahkan Data",
+          text: json.error || "Gagal menyimpan data ke database.",
+          confirmButtonColor: "#e11d48",
+        });
       }
     } catch (err) {
       console.error("Error adding master jenis biaya:", err);
-      alert("Terjadi kesalahan saat menambah data.");
+      Swal.fire({
+        icon: "error",
+        title: "Gagal Menambahkan Data",
+        text: (err as Error).message || "Terjadi kesalahan saat menghubungi server.",
+        confirmButtonColor: "#e11d48",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -90,12 +116,29 @@ export const MasterJenisBiayaView: React.FC = () => {
       if (json.success) {
         setDeletingItem(null);
         fetchJenisBiaya();
+        Swal.fire({
+          icon: "success",
+          title: "Berhasil Dihapus!",
+          text: "Master Jenis Biaya telah berhasil dihapus dari database.",
+          confirmButtonColor: "#0072CE",
+          timer: 2000,
+        });
       } else {
-        alert(json.error || "Gagal menghapus Master Jenis Biaya.");
+        Swal.fire({
+          icon: "error",
+          title: "Gagal Menghapus Data",
+          text: json.error || "Gagal menghapus Master Jenis Biaya.",
+          confirmButtonColor: "#e11d48",
+        });
       }
     } catch (err) {
       console.error("Error deleting jenis biaya:", err);
-      alert("Terjadi kesalahan saat menghapus data.");
+      Swal.fire({
+        icon: "error",
+        title: "Gagal Menghapus Data",
+        text: (err as Error).message || "Terjadi kesalahan saat menghapus data.",
+        confirmButtonColor: "#e11d48",
+      });
     }
   };
 
@@ -116,10 +159,10 @@ export const MasterJenisBiayaView: React.FC = () => {
   return (
     <div className="bg-white rounded-2xl border border-slate-200/90 p-5 md:p-6 shadow-xs transition-all space-y-6">
       {/* Card Header & Top Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Master Jenis Biaya</h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">Master Jenis Biaya</h2>
             <span className="px-2.5 py-0.5 rounded-full bg-[#0072CE]/10 text-[#0072CE] text-xs font-bold">
               {filteredItems.length} Item
             </span>
@@ -129,18 +172,18 @@ export const MasterJenisBiayaView: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto">
           {/* Refresh Button */}
           <button
             onClick={fetchJenisBiaya}
-            className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 rounded-xl transition-all"
+            className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 rounded-xl transition-all shrink-0"
             title="Refresh Data DB"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-[#00A3E0]" : ""}`} />
           </button>
 
           {/* Search Field */}
-          <div className="relative flex-1 sm:w-64">
+          <div className="relative flex-1 min-w-[160px] sm:w-64">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
@@ -165,10 +208,10 @@ export const MasterJenisBiayaView: React.FC = () => {
           {/* Yellow CTA Add Button */}
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#FFC72C] hover:bg-[#F2B81A] text-slate-950 rounded-xl text-xs sm:text-sm font-extrabold transition-all shadow-xs border border-amber-300 shrink-0 cursor-pointer"
+            className="flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 bg-[#FFC72C] hover:bg-[#F2B81A] text-slate-950 rounded-xl text-xs sm:text-sm font-extrabold transition-all shadow-xs border border-amber-300 shrink-0 cursor-pointer w-full sm:w-auto"
           >
             <PlusCircle className="w-4 h-4 stroke-[2.5]" />
-            <span className="hidden sm:inline">Tambah Jenis Biaya</span>
+            <span>Tambah Jenis Biaya</span>
           </button>
         </div>
       </div>
@@ -300,9 +343,9 @@ export const MasterJenisBiayaView: React.FC = () => {
 
       {/* MODAL 1: ADD MASTER JENIS BIAYA */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-amber-50/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in overflow-y-auto">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-md my-auto overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-100 bg-amber-50/50">
               <div className="flex items-center gap-2">
                 <DollarSign className="w-5 h-5 text-amber-600" />
                 <h3 className="font-extrabold text-slate-900 text-base">Tambah Jenis Biaya Baru</h3>
@@ -315,7 +358,7 @@ export const MasterJenisBiayaView: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleAddJenisBiaya} className="p-6 space-y-4">
+            <form onSubmit={handleAddJenisBiaya} className="p-5 sm:p-6 space-y-4 overflow-y-auto">
               <div>
                 <label className="block text-xs font-bold text-slate-800 mb-1.5">
                   Nama Jenis Biaya <span className="text-rose-500">*</span>
@@ -332,14 +375,15 @@ export const MasterJenisBiayaView: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-800 mb-1.5">
-                  Keterangan / Deskripsi
+                  Singkatan / Kode (Maks 6 Huruf)
                 </label>
                 <input
                   type="text"
-                  placeholder="Contoh: Biaya Sarana & Operasional Kegiatan"
+                  maxLength={6}
+                  placeholder="Contoh: TJBA (Maks 6 Karakter)"
                   value={newKet}
-                  onChange={(e) => setNewKet(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white"
+                  onChange={(e) => setNewKet(e.target.value.toUpperCase().slice(0, 6))}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold uppercase focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white"
                 />
               </div>
 
@@ -367,9 +411,9 @@ export const MasterJenisBiayaView: React.FC = () => {
 
       {/* MODAL 2: VIEW DETAIL MASTER JENIS BIAYA */}
       {viewingItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-sky-50/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in overflow-y-auto">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-md my-auto overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-100 bg-sky-50/50">
               <div className="flex items-center gap-2">
                 <DollarSign className="w-5 h-5 text-[#0072CE]" />
                 <h3 className="font-extrabold text-slate-900 text-base">Detail Master Jenis Biaya</h3>
@@ -382,7 +426,7 @@ export const MasterJenisBiayaView: React.FC = () => {
               </button>
             </div>
 
-            <div className="p-6 space-y-4 text-xs">
+            <div className="p-5 sm:p-6 space-y-4 text-xs overflow-y-auto">
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-3">
                 <div>
                   <span className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider block mb-0.5">

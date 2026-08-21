@@ -220,7 +220,7 @@ export default function Home() {
         />
 
         {/* MAIN BODY AREA */}
-        <main className="flex-1 p-6 md:p-8 space-y-6 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-3 sm:p-6 md:p-8 space-y-6 max-w-7xl w-full mx-auto overflow-x-hidden">
           {activeMenu === "master-program" ? (
             <MasterProgramView />
           ) : activeMenu === "master-keyword" ? (

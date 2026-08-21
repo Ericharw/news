@@ -4,7 +4,7 @@ import pool from "@/lib/db";
 // GET /api/keywords - Fetch all master keywords from PostgreSQL master_keyword
 export async function GET() {
   try {
-    const result = await pool.query("SELECT * FROM master_keyword ORDER BY id ASC;");
+    const result = await pool.query("SELECT * FROM master_keyword ORDER BY id DESC;");
     return NextResponse.json({ success: true, data: result.rows });
   } catch (error: unknown) {
     console.error("GET Keywords Error:", error);

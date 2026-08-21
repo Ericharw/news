@@ -45,7 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside
       className={`${
-        sidebarCollapsed ? "w-20" : "w-64"
+        sidebarCollapsed ? "w-0 md:w-20 border-r-0 md:border-r overflow-hidden" : "w-64"
       } bg-white border-r border-slate-200/80 flex flex-col justify-between transition-all duration-300 relative z-20 shrink-0 h-screen sticky top-0 shadow-xs overflow-hidden`}
     >
       {/* Top Header & Scrollable Nav */}

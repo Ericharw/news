@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { MasterProgramItem } from "@/types/activity";
+import Swal from "sweetalert2";
 import {
   Search,
   PlusCircle,
@@ -53,7 +54,12 @@ export const MasterProgramView: React.FC = () => {
   const handleAddProgram = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLabel.trim() || !newCode.trim()) {
-      alert("Harap lengkapi Nama Program dan Kode Singkatan.");
+      Swal.fire({
+        icon: "warning",
+        title: "Input Tidak Lengkap",
+        text: "Harap lengkapi Nama Program dan Kode Singkatan.",
+        confirmButtonColor: "#0072CE",
+      });
       return;
     }
 
@@ -68,14 +74,34 @@ export const MasterProgramView: React.FC = () => {
       if (json.success) {
         setNewLabel("");
         setNewCode("");
+        setSearchQuery("");
+        setCurrentPage(1);
         setIsAddModalOpen(false);
         fetchPrograms();
+
+        Swal.fire({
+          icon: "success",
+          title: "Berhasil Menyimpan Data!",
+          text: "Master Program baru berhasil tersimpan ke database PostgreSQL.",
+          confirmButtonColor: "#0072CE",
+          timer: 2500,
+        });
       } else {
-        alert(json.error || "Gagal menambah Master Program.");
+        Swal.fire({
+          icon: "error",
+          title: "Gagal Menambahkan Data",
+          text: json.error || "Gagal menyimpan data ke database.",
+          confirmButtonColor: "#e11d48",
+        });
       }
     } catch (err) {
       console.error("Error adding master program:", err);
-      alert("Terjadi kesalahan server saat menambah data.");
+      Swal.fire({
+        icon: "error",
+        title: "Gagal Menambahkan Data",
+        text: (err as Error).message || "Terjadi kesalahan server saat menambah data.",
+        confirmButtonColor: "#e11d48",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -90,12 +116,30 @@ export const MasterProgramView: React.FC = () => {
       if (json.success) {
         setDeletingItem(null);
         fetchPrograms();
+
+        Swal.fire({
+          icon: "success",
+          title: "Berhasil Dihapus!",
+          text: "Master Program telah berhasil dihapus dari database.",
+          confirmButtonColor: "#0072CE",
+          timer: 2000,
+        });
       } else {
-        alert(json.error || "Gagal menghapus Master Program.");
+        Swal.fire({
+          icon: "error",
+          title: "Gagal Menghapus Data",
+          text: json.error || "Gagal menghapus Master Program.",
+          confirmButtonColor: "#e11d48",
+        });
       }
     } catch (err) {
       console.error("Error deleting program:", err);
-      alert("Terjadi kesalahan saat menghapus data.");
+      Swal.fire({
+        icon: "error",
+        title: "Gagal Menghapus Data",
+        text: (err as Error).message || "Terjadi kesalahan saat menghapus data.",
+        confirmButtonColor: "#e11d48",
+      });
     }
   };
 
@@ -116,10 +160,10 @@ export const MasterProgramView: React.FC = () => {
   return (
     <div className="bg-white rounded-2xl border border-slate-200/90 p-5 md:p-6 shadow-xs transition-all space-y-6">
       {/* Card Header & Top Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Master Program</h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">Master Program</h2>
             <span className="px-2.5 py-0.5 rounded-full bg-[#0072CE]/10 text-[#0072CE] text-xs font-bold">
               {filteredPrograms.length} Item
             </span>
@@ -129,18 +173,18 @@ export const MasterProgramView: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto">
           {/* Refresh Button */}
           <button
             onClick={fetchPrograms}
-            className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 rounded-xl transition-all"
+            className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 rounded-xl transition-all shrink-0"
             title="Refresh Data DB"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-[#0072CE]" : ""}`} />
           </button>
 
           {/* Search Field */}
-          <div className="relative flex-1 sm:w-64">
+          <div className="relative flex-1 min-w-[160px] sm:w-64">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
@@ -165,10 +209,10 @@ export const MasterProgramView: React.FC = () => {
           {/* Yellow CTA Add Button */}
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#FFC72C] hover:bg-[#F2B81A] text-slate-950 rounded-xl text-xs sm:text-sm font-extrabold transition-all shadow-xs border border-amber-300 shrink-0 cursor-pointer"
+            className="flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 bg-[#FFC72C] hover:bg-[#F2B81A] text-slate-950 rounded-xl text-xs sm:text-sm font-extrabold transition-all shadow-xs border border-amber-300 shrink-0 cursor-pointer w-full sm:w-auto"
           >
             <PlusCircle className="w-4 h-4 stroke-[2.5]" />
-            <span className="hidden sm:inline">Tambah Program</span>
+            <span>Tambah Program</span>
           </button>
         </div>
       </div>
@@ -328,14 +372,15 @@ export const MasterProgramView: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-800 mb-1.5">
-                  Kode / Singkatan <span className="text-rose-500">*</span>
+                  Kode / Singkatan (Maks 6 Huruf) <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: EDUKATIF"
+                  maxLength={6}
+                  placeholder="Contoh: EDUKAT (Maks 6 Karakter)"
                   value={newCode}
-                  onChange={(e) => setNewCode(e.target.value)}
+                  onChange={(e) => setNewCode(e.target.value.toUpperCase().slice(0, 6))}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold uppercase focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white"
                 />
               </div>
