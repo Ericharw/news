@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import {
   FolderKanban,
@@ -8,7 +8,11 @@ import {
   ChevronUp,
   PlusCircle,
   ListFilter,
-  Zap
+  Zap,
+  Database,
+  BookOpen,
+  KeyRound,
+  DollarSign
 } from "lucide-react";
 import { ActiveMenuType } from "@/types/activity";
 
@@ -27,9 +31,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setIsKegiatanOpen,
   sidebarCollapsed
 }) => {
+  const [isMasterOpen, setIsMasterOpen] = useState(true);
+
   const handleMenuClick = (menu: ActiveMenuType) => {
     setActiveMenu(menu);
   };
+
+  const isMasterActive =
+    activeMenu === "master-program" ||
+    activeMenu === "master-keyword" ||
+    activeMenu === "master-jenis-biaya";
 
   return (
     <aside
@@ -94,7 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Navigation Links */}
-        <nav className="p-4 space-y-1.5 text-sm overflow-y-auto flex-1">
+        <nav className="p-4 space-y-2 text-sm overflow-y-auto flex-1">
           {/* Section Label */}
           {!sidebarCollapsed && (
             <div className="px-3 pt-1 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
@@ -150,6 +161,69 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 >
                   <PlusCircle className="w-3.5 h-3.5" />
                   <span>Tambah Kegiatan</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Master Data Parent Menu */}
+          <div>
+            <button
+              onClick={() => setIsMasterOpen(!isMasterOpen)}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all ${
+                isMasterActive ? "text-[#0072CE] font-bold" : ""
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Database className={`w-5 h-5 shrink-0 ${isMasterActive ? "text-[#0072CE]" : "text-slate-500"}`} />
+                {!sidebarCollapsed && <span>Master Data</span>}
+              </div>
+              {!sidebarCollapsed && (
+                isMasterOpen ? (
+                  <ChevronUp className="w-4 h-4 text-slate-400" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-slate-400" />
+                )
+              )}
+            </button>
+
+            {/* Sub-items */}
+            {isMasterOpen && !sidebarCollapsed && (
+              <div className="ml-5 pl-3 border-l-2 border-slate-100 my-1 space-y-1">
+                <button
+                  onClick={() => handleMenuClick("master-program")}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                    activeMenu === "master-program"
+                      ? "bg-[#0072CE] text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  }`}
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Master Program</span>
+                </button>
+
+                <button
+                  onClick={() => handleMenuClick("master-keyword")}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                    activeMenu === "master-keyword"
+                      ? "bg-rose-600 text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  }`}
+                >
+                  <KeyRound className="w-3.5 h-3.5" />
+                  <span>Master Keyword</span>
+                </button>
+
+                <button
+                  onClick={() => handleMenuClick("master-jenis-biaya")}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                    activeMenu === "master-jenis-biaya"
+                      ? "bg-[#FFC72C] text-slate-950 font-bold shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  }`}
+                >
+                  <DollarSign className="w-3.5 h-3.5" />
+                  <span>Master Jenis Biaya</span>
                 </button>
               </div>
             )}

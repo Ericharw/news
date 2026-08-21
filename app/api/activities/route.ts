@@ -1,6 +1,18 @@
 import { NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { INITIAL_ACTIVITIES } from "@/data/initialActivities";
+import { ActivityItem } from "@/types/activity";
+
+// In-memory store fallback so data is ALWAYS saved even before PostgreSQL password is set in .env
+let memoryActivities: ActivityItem[] = [...INITIAL_ACTIVITIES];
+
+export function getMemoryActivities() {
+  return memoryActivities;
+}
+
+export function setMemoryActivities(items: ActivityItem[]) {
+  memoryActivities = items;
+}
 
 // Auto-create table and seed if not exists
 async function ensureTableExists() {
@@ -44,7 +56,7 @@ async function ensureTableExists() {
   }
 }
 
-// GET /api/activities - Fetch all activities from PostgreSQL
+// GET /api/activities - Fetch all activities from PostgreSQL (or memory fallback)
 export async function GET() {
   try {
     await ensureTableExists();
@@ -61,14 +73,16 @@ export async function GET() {
       batch: row.batch,
     }));
 
+    // Update memory cache
+    memoryActivities = activities;
     return NextResponse.json({ success: true, data: activities });
   } catch (error: unknown) {
-    console.warn("Database GET warning, returning initial dataset:", error);
-    return NextResponse.json({ success: true, data: INITIAL_ACTIVITIES });
+    console.warn("Database GET warning, operating in memory fallback mode:", (error as Error).message);
+    return NextResponse.json({ success: true, data: memoryActivities });
   }
 }
 
-// POST /api/activities - Insert new activity into PostgreSQL
+// POST /api/activities - Insert new activity into PostgreSQL (or memory fallback)
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -102,7 +116,7 @@ export async function POST(request: Request) {
       );
 
       const row = result.rows[0];
-      const newItem = {
+      const newItem: ActivityItem = {
         no: nextNo,
         id: row.id,
         namaProgram: row.nama_program,
@@ -113,11 +127,13 @@ export async function POST(request: Request) {
         batch: row.batch,
       };
 
+      memoryActivities.unshift(newItem);
       return NextResponse.json({ success: true, data: newItem }, { status: 201 });
     } catch (dbErr) {
-      console.warn("Database POST warning, operating in memory fallback:", dbErr);
-      const newItem = {
-        no: 99,
+      console.warn("Database POST warning, operating in memory store fallback:", (dbErr as Error).message);
+      const nextNo = memoryActivities.length + 1;
+      const newItem: ActivityItem = {
+        no: nextNo,
         id: Date.now(),
         namaProgram,
         subjekKegiatan,
@@ -126,12 +142,16 @@ export async function POST(request: Request) {
         tanggalAwal: tanggalAwal || "20/08/2026",
         batch: batch ? (batch.startsWith("Batch") ? batch : `Batch ${batch}`) : "Batch 1",
       };
+
+      // Add to memory list
+      memoryActivities = [newItem, ...memoryActivities];
+
       return NextResponse.json({ success: true, data: newItem }, { status: 201 });
     }
   } catch (error: unknown) {
     console.error("Database POST Error:", error);
     return NextResponse.json(
-      { success: false, error: (error as Error).message || "Failed to insert activity into PostgreSQL" },
+      { success: false, error: (error as Error).message || "Failed to insert activity into database" },
       { status: 500 }
     );
   }

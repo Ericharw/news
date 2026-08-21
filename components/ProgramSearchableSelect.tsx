@@ -17,8 +17,25 @@ export const ProgramSearchableSelect: React.FC<ProgramSearchableSelectProps> = (
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [options, setOptions] = useState<ProgramOption[]>(PROGRAM_OPTIONS);
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch live options from PostgreSQL master API
+  useEffect(() => {
+    async function loadPrograms() {
+      try {
+        const res = await fetch("/api/master/programs");
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          setOptions(json.data.map((item: { label: string; code: string }) => ({ label: item.label, code: item.code })));
+        }
+      } catch (err) {
+        console.error("Error loading master programs:", err);
+      }
+    }
+    loadPrograms();
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -38,7 +55,7 @@ export const ProgramSearchableSelect: React.FC<ProgramSearchableSelectProps> = (
     }
   }, [isOpen]);
 
-  const filteredOptions = PROGRAM_OPTIONS.filter(
+  const filteredOptions = options.filter(
     (opt) =>
       opt.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
       opt.code.toLowerCase().includes(searchTerm.toLowerCase())
@@ -166,7 +183,7 @@ export const ProgramSearchableSelect: React.FC<ProgramSearchableSelectProps> = (
           {/* Footer Info */}
           <div className="px-3 py-1.5 bg-slate-50 border-t border-slate-100 text-[10px] text-slate-400 font-bold flex items-center justify-between">
             <span>{filteredOptions.length} Program Tersedia</span>
-            <span className="text-[#0072CE]">Standard PLN NEWS</span>
+            <span className="text-[#0072CE]">PostgreSQL NEWS Sync</span>
           </div>
         </div>
       )}

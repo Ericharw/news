@@ -23,6 +23,12 @@ export const Header: React.FC<HeaderProps> = ({
         return "Data Kegiatan & Diklat";
       case "tambah-kegiatan":
         return "Input Kegiatan Baru (NEWS)";
+      case "master-program":
+        return "Master Program & Singkatan";
+      case "master-keyword":
+        return "Master Keyword Non-Allowable Cost (NAC)";
+      case "master-jenis-biaya":
+        return "Master Jenis Biaya PLN";
       default:
         return "Data Kegiatan";
     }

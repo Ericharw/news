@@ -1,50 +1,10 @@
 import { NextResponse } from "next/server";
 import pool from "@/lib/db";
 
-// Default seed keywords if table is empty
-const INITIAL_KEYWORDS = [
-  { keyword: "Laundry", kategori: "Fasilitas Perorangan (Non-Allowable)" },
-  { keyword: "LAUNDRY", kategori: "Fasilitas Perorangan (Non-Allowable)" },
-  { keyword: "Wisata", kategori: "Rekreasi / Non-Allowable" },
-  { keyword: "Rekreasi", kategori: "Rekreasi / Non-Allowable" },
-  { keyword: "Golf", kategori: "Olahraga Pribadi / Non-Allowable" },
-  { keyword: "Souvenir", kategori: "Hadiah / Non-Allowable" },
-  { keyword: "Entertainment", kategori: "Hiburan / Non-Allowable" },
-  { keyword: "Personal", kategori: "Pengeluaran Pribadi" },
-  { keyword: "Purnabakti", kategori: "Jasa Duka / Hadiah" },
-];
-
-export async function ensureKeywordTable() {
-  const client = await pool.connect();
-  try {
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS master_keywords (
-        id SERIAL PRIMARY KEY,
-        keyword VARCHAR(255) NOT NULL UNIQUE,
-        kategori_transaksi VARCHAR(255) DEFAULT 'Non-Allowable Cost',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-
-    const countRes = await client.query("SELECT COUNT(*) FROM master_keywords;");
-    if (parseInt(countRes.rows[0].count, 10) === 0) {
-      for (const item of INITIAL_KEYWORDS) {
-        await client.query(
-          "INSERT INTO master_keywords (keyword, kategori_transaksi) VALUES ($1, $2) ON CONFLICT DO NOTHING;",
-          [item.keyword, item.kategori]
-        );
-      }
-    }
-  } finally {
-    client.release();
-  }
-}
-
-// GET /api/keywords - Fetch all master keywords
+// GET /api/keywords - Fetch all master keywords from PostgreSQL master_keyword
 export async function GET() {
   try {
-    await ensureKeywordTable();
-    const result = await pool.query("SELECT * FROM master_keywords ORDER BY id ASC;");
+    const result = await pool.query("SELECT * FROM master_keyword ORDER BY id ASC;");
     return NextResponse.json({ success: true, data: result.rows });
   } catch (error: unknown) {
     console.error("GET Keywords Error:", error);
@@ -55,12 +15,11 @@ export async function GET() {
   }
 }
 
-// POST /api/keywords - Add new master keyword
+// POST /api/keywords - Add new master keyword to master_keyword table
 export async function POST(request: Request) {
   try {
-    await ensureKeywordTable();
     const body = await request.json();
-    const { keyword, kategoriTransaksi } = body;
+    const { keyword, kategoriTransaksi, tipeTransaksi } = body;
 
     if (!keyword) {
       return NextResponse.json(
@@ -69,12 +28,13 @@ export async function POST(request: Request) {
       );
     }
 
+    const tipeVal = tipeTransaksi || kategoriTransaksi || "Non-Allowable Cost (NAC)";
+
     const result = await pool.query(
-      `INSERT INTO master_keywords (keyword, kategori_transaksi)
+      `INSERT INTO master_keyword (keyword, tipe_transaksi)
        VALUES ($1, $2)
-       ON CONFLICT (keyword) DO UPDATE SET kategori_transaksi = EXCLUDED.kategori_transaksi
        RETURNING *;`,
-      [keyword.trim(), kategoriTransaksi || "Non-Allowable Cost"]
+      [keyword.trim(), tipeVal.trim()]
     );
 
     return NextResponse.json({ success: true, data: result.rows[0] }, { status: 201 });
@@ -86,3 +46,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

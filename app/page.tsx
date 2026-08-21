@@ -10,6 +10,9 @@ import { Footer } from "@/components/Footer";
 import { Toast } from "@/components/Toast";
 import { ActivityTable } from "@/components/ActivityTable";
 import { TambahKegiatanView } from "@/components/TambahKegiatanView";
+import { MasterProgramView } from "@/components/MasterProgramView";
+import { MasterKeywordView } from "@/components/MasterKeywordView";
+import { MasterJenisBiayaView } from "@/components/MasterJenisBiayaView";
 import { ViewDetailModal } from "@/components/ViewDetailModal";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { ValidationPreviewModal } from "@/components/ValidationPreviewModal";
@@ -218,7 +221,13 @@ export default function Home() {
 
         {/* MAIN BODY AREA */}
         <main className="flex-1 p-6 md:p-8 space-y-6 max-w-7xl w-full mx-auto">
-          {activeMenu === "tambah-kegiatan" ? (
+          {activeMenu === "master-program" ? (
+            <MasterProgramView />
+          ) : activeMenu === "master-keyword" ? (
+            <MasterKeywordView />
+          ) : activeMenu === "master-jenis-biaya" ? (
+            <MasterJenisBiayaView />
+          ) : activeMenu === "tambah-kegiatan" ? (
             /* HALAMAN KHUSUS TAMBAH KEGIATAN */
             <TambahKegiatanView
               formValues={formValues}

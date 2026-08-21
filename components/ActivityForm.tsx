@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { ShieldCheck, Calendar, ChevronDown, RotateCcw, PlusCircle } from "lucide-react";
 import { ActivityFormValues } from "@/types/activity";
 import { ProgramSearchableSelect } from "@/components/ProgramSearchableSelect";
@@ -20,6 +20,29 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
   onReset,
   isValidating = false
 }) => {
+  const [jenisBiayaOptions, setJenisBiayaOptions] = useState<string[]>([
+    "5.2 SARANA",
+    "Perjalanan Dinas",
+    "Konsumsi",
+    "Akomodasi",
+  ]);
+
+  // Fetch Master Jenis Biaya from PostgreSQL API
+  useEffect(() => {
+    async function loadJenisBiaya() {
+      try {
+        const res = await fetch("/api/master/jenis-biaya");
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          setJenisBiayaOptions(json.data.map((item: { nama: string }) => item.nama));
+        }
+      } catch (err) {
+        console.error("Error loading master jenis biaya:", err);
+      }
+    }
+    loadJenisBiaya();
+  }, []);
+
   return (
     <div
       id="tambah-kegiatan-form"
@@ -85,10 +108,11 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
               <option value="" disabled>
                 -- Pilih jenis biaya --
               </option>
-              <option value="5.2 SARANA">5.2 SARANA</option>
-              <option value="Perjalanan Dinas">Perjalanan Dinas</option>
-              <option value="Konsumsi">Konsumsi</option>
-              <option value="Akomodasi">Akomodasi</option>
+              {jenisBiayaOptions.map((opt, idx) => (
+                <option key={idx} value={opt}>
+                  {opt}
+                </option>
+              ))}
             </select>
             <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>

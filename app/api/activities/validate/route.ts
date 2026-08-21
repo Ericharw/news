@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import pool from "@/lib/db";
-import { ensureKeywordTable } from "@/app/api/keywords/route";
 
 const FALLBACK_KEYWORDS = [
   { keyword: "* EMBER *", kategori_transaksi: "Perabotan & Perlengkapan Kantor / Dapur/ Toilet" },
@@ -61,13 +60,12 @@ export async function POST(request: Request) {
     let masterKeywords = FALLBACK_KEYWORDS;
 
     try {
-      await ensureKeywordTable();
-      const keywordRes = await pool.query("SELECT * FROM master_keywords;");
+      const keywordRes = await pool.query("SELECT * FROM master_keyword;");
       if (keywordRes.rows && keywordRes.rows.length > 0) {
         masterKeywords = keywordRes.rows;
       }
     } catch (dbErr) {
-      console.warn("PostgreSQL query warning, using local master_keywords fallback:", dbErr);
+      console.warn("PostgreSQL query warning, using local master_keyword fallback:", dbErr);
     }
 
     const detectedKeywords: { keyword: string; field: string; category: string }[] = [];
@@ -87,10 +85,15 @@ export async function POST(request: Request) {
             (d) => d.keyword.toLowerCase() === kwObj.keyword.toLowerCase() && d.field === item.field
           );
           if (!alreadyAdded) {
+            const categoryVal =
+              (kwObj as { tipe_transaksi?: string; kategori_transaksi?: string }).tipe_transaksi ||
+              (kwObj as { tipe_transaksi?: string; kategori_transaksi?: string }).kategori_transaksi ||
+              "Non-Allowable Cost (NAC)";
+
             detectedKeywords.push({
               keyword: kwObj.keyword,
               field: item.field,
-              category: kwObj.kategori_transaksi || "Non-Allowable Cost (NAC)",
+              category: categoryVal,
             });
           }
         }

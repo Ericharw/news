@@ -20,4 +20,27 @@ export interface ActivityFormValues {
   batch: string;
 }
 
-export type ActiveMenuType = "data-kegiatan" | "tambah-kegiatan";
+export interface MasterProgramItem {
+  id: number;
+  label: string;
+  code: string;
+}
+
+export interface MasterKeywordItem {
+  id: number;
+  keyword: string;
+  kategoriTransaksi: string;
+}
+
+export interface MasterJenisBiayaItem {
+  id: number;
+  nama: string;
+  keterangan?: string;
+}
+
+export type ActiveMenuType =
+  | "data-kegiatan"
+  | "tambah-kegiatan"
+  | "master-program"
+  | "master-keyword"
+  | "master-jenis-biaya";
