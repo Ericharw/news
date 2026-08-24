@@ -13,6 +13,7 @@ import {
   BookOpen,
   KeyRound,
   DollarSign,
+  HelpCircle,
   UserCheck,
   FileEdit,
   RefreshCw
@@ -47,7 +48,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const isMasterActive =
     activeMenu === "master-program" ||
     activeMenu === "master-keyword" ||
-    activeMenu === "master-jenis-biaya";
+    activeMenu === "master-jenis-biaya" ||
+    activeMenu === "master-grey-area";
 
   return (
     <aside
@@ -263,7 +265,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <DollarSign className="w-3.5 h-3.5" />
                       <span>Master Jenis Biaya</span>
                     </button>
+
+                    <button
+                      onClick={() => handleMenuClick("master-grey-area")}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                        activeMenu === "master-grey-area"
+                          ? "bg-amber-500 text-white shadow-xs font-bold"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                      }`}
+                    >
+                      <HelpCircle className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                      <span>Master Grey Area</span>
+                    </button>
                   </div>
+
                 )}
               </div>
             </>

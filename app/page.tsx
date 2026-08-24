@@ -15,6 +15,7 @@ import { UserFormView } from "@/components/UserFormView";
 import { MasterProgramView } from "@/components/MasterProgramView";
 import { MasterKeywordView } from "@/components/MasterKeywordView";
 import { MasterJenisBiayaView } from "@/components/MasterJenisBiayaView";
+import { MasterGreyAreaView } from "@/components/MasterGreyAreaView";
 import { ViewDetailModal } from "@/components/ViewDetailModal";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { ValidationPreviewModal } from "@/components/ValidationPreviewModal";
@@ -106,9 +107,12 @@ export default function Home() {
           setActiveMenu("master-keyword");
         } else if (path === "/master-jenis-biaya" || path === "/master-jenis-biaya-edit") {
           setActiveMenu("master-jenis-biaya");
+        } else if (path === "/master-grey-area" || path === "/master-grey-area-edit") {
+          setActiveMenu("master-grey-area");
         } else if (path === "/data-kegiatan" || path === "/") {
           setActiveMenu("data-kegiatan");
         }
+
       }
     };
 
@@ -336,7 +340,10 @@ export default function Home() {
             <MasterKeywordView />
           ) : activeMenu === "master-jenis-biaya" ? (
             <MasterJenisBiayaView />
+          ) : activeMenu === "master-grey-area" ? (
+            <MasterGreyAreaView />
           ) : activeMenu === "tambah-kegiatan" ? (
+
             /* HALAMAN KHUSUS TAMBAH KEGIATAN */
             <TambahKegiatanView
               formValues={formValues}

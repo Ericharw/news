@@ -43,6 +43,14 @@ export interface MasterJenisBiayaItem {
   keterangan?: string;
 }
 
+export interface MasterGreyAreaItem {
+  id: number;
+  idKode: string;
+  namaTransaksi: string;
+  status: string;
+  ringkasan: string;
+}
+
 export type UserRole = "admin" | "user";
 
 export type ActiveMenuType =
@@ -51,5 +59,7 @@ export type ActiveMenuType =
   | "master-program"
   | "master-keyword"
   | "master-jenis-biaya"
+  | "master-grey-area"
   | "user-form";
+
 

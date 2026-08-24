@@ -19,30 +19,32 @@ function matchesKeyword(text: string, rawKeyword: string): boolean {
   const cleanText = text.trim().toLowerCase();
   let cleanKw = rawKeyword.trim().toLowerCase();
 
-  // If keyword contains wildcard '*'
-  if (cleanKw.includes("*")) {
-    const coreKw = cleanKw.replace(/^[\*\s,]+|[\*\s,]+$/g, "");
-    if (!coreKw) return false;
+  // Strip asterisks and commas to get the literal core keyword phrase
+  const literalCore = cleanKw.replace(/[\*\,]/g, "").trim();
+  if (!literalCore || literalCore.length < 2) return false;
 
-    const regexPattern = coreKw
-      .split("*")
-      .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-      .join(".*");
+  const escaped = literalCore.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+  // For short keywords (3 characters or less, e.g. "rd", "5s"), MUST match as a standalone word using \b
+  if (literalCore.length <= 3) {
     try {
-      const reg = new RegExp(regexPattern, "i");
+      const reg = new RegExp(`\\b${escaped}\\b`, "i");
       return reg.test(cleanText);
     } catch {
-      return cleanText.includes(coreKw);
+      return cleanText === literalCore;
     }
   }
 
-  // Handle leading punctuation like ",EMBER" or "/5S GI"
-  cleanKw = cleanKw.replace(/^[,/]+/, "").trim();
-  if (cleanKw.length < 2) return false;
-
-  return cleanText.includes(cleanKw);
+  // For longer keywords, check if cleanText contains literalCore
+  try {
+    const reg = new RegExp(escaped, "i");
+    return reg.test(cleanText);
+  } catch {
+    return cleanText.includes(literalCore);
+  }
 }
+
+
 
 // POST /api/activities/validate - Validate inputs against master_keywords in PostgreSQL
 export async function POST(request: Request) {
