@@ -82,9 +82,9 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
           </div>
 
           <div className="grid grid-cols-12 gap-2">
-            <span className="col-span-4 font-bold text-slate-500 uppercase text-[11px]">Tanggal & Batch</span>
+            <span className="col-span-4 font-bold text-slate-500 uppercase text-[11px]">Tanggal</span>
             <span className="col-span-8 font-bold text-slate-700">
-              : {formValues.tanggalAwal || "20/08/2026"} ({formValues.batch ? (formValues.batch.startsWith("Batch") ? formValues.batch : `Batch ${formValues.batch}`) : "Batch 1"})
+              : {formValues.tanggalAwal || "20/08/2026"}
             </span>
           </div>
         </div>

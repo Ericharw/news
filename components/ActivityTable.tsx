@@ -160,8 +160,8 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
               <th className="py-3.5 px-4">Nama Program</th>
               <th className="py-3.5 px-4">Subjek Kegiatan</th>
               <th className="py-3.5 px-4">Jenis Biaya</th>
-              <th className="py-3.5 px-4">Tanggal Awal</th>
-              <th className="py-3.5 px-4">Batch</th>
+              <th className="py-3.5 px-4">Tanggal</th>
+              <th className="py-3.5 px-4">Ringkasan Isi Form</th>
               <th className="py-3.5 px-4 text-center">Aksi</th>
             </tr>
           </thead>
@@ -197,16 +197,33 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                       {row.jenisBiaya}
                     </span>
                   </td>
-                  <td className="py-4 px-4 text-slate-600 font-medium">
+                  <td className="py-4 px-4 text-slate-600 font-medium whitespace-nowrap">
                     <div className="flex items-center gap-1.5">
                       <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
                       <span>{row.tanggalAwal}</span>
                     </div>
                   </td>
-                  <td className="py-4 px-4">
-                    <span className="inline-block px-2.5 py-0.5 rounded-md bg-amber-100/70 text-amber-900 font-bold text-xs border border-amber-200">
-                      {row.batch}
-                    </span>
+                  <td className="py-4 px-4 min-w-[250px]">
+                    <div className="bg-slate-50/90 rounded-xl p-2.5 border border-slate-200/80 text-xs space-y-1 shadow-2xs">
+                      <div className="font-extrabold text-slate-900">
+                        {row.namaProgram}
+                      </div>
+                      <div className="text-slate-700 font-medium">
+                        <span className="text-slate-400 font-semibold">Subjek:</span> {row.subjekKegiatan}
+                      </div>
+                      {row.objekKegiatan && (
+                        <div className="text-slate-600 text-[11px]">
+                          <span className="text-slate-400 font-semibold">Objek:</span> {row.objekKegiatan}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1.5 text-[10px] pt-1.5 border-t border-slate-200/60 text-slate-500 font-bold flex-wrap">
+                        <span className="bg-sky-100/80 text-[#0072CE] px-1.5 py-0.5 rounded border border-sky-200/60">
+                          {row.jenisBiaya}
+                        </span>
+                        <span>•</span>
+                        <span>{row.tanggalAwal}</span>
+                      </div>
+                    </div>
                   </td>
                   <td className="py-4 px-4 text-center">
                     <div className="flex items-center justify-center gap-2">

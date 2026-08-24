@@ -171,7 +171,7 @@ export default function Home() {
         Swal.fire({
           icon: "success",
           title: "Berhasil Menyimpan Data!",
-          text: "Data kegiatan baru berhasil disimpan ke database PostgreSQL.",
+          text: "Data kegiatan baru berhasil disimpan ke database.",
           confirmButtonColor: "#0072CE",
           timer: 2500,
         });
@@ -179,7 +179,7 @@ export default function Home() {
         Swal.fire({
           icon: "error",
           title: "Gagal Menyimpan Data",
-          text: json.error || "Gagal menyimpan data ke PostgreSQL.",
+          text: json.error || "Gagal menyimpan data ke database.",
           confirmButtonColor: "#e11d48",
         });
       }
@@ -220,7 +220,7 @@ export default function Home() {
         Swal.fire({
           icon: "success",
           title: "Berhasil Dihapus!",
-          text: "Data kegiatan telah berhasil dihapus dari database PostgreSQL.",
+          text: "Data kegiatan telah berhasil dihapus dari database.",
           confirmButtonColor: "#0072CE",
           timer: 2000,
         });
@@ -228,7 +228,7 @@ export default function Home() {
         Swal.fire({
           icon: "error",
           title: "Gagal Menghapus Data",
-          text: json.error || "Gagal menghapus data dari PostgreSQL.",
+          text: json.error || "Gagal menghapus data dari.",
           confirmButtonColor: "#e11d48",
         });
       }

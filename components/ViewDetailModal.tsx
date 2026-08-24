@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { X, Calendar, Layers, Tag, FileText, CheckCircle2 } from "lucide-react";
+import { X, Calendar, Tag, FileText, CheckCircle2 } from "lucide-react";
 import { ActivityItem } from "@/types/activity";
 
 interface ViewDetailModalProps {
@@ -87,18 +87,12 @@ export const ViewDetailModal: React.FC<ViewDetailModalProps> = ({ item, onClose 
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3 pt-2">
-            <div className="bg-sky-50/60 p-3 rounded-xl border border-sky-100">
+          <div className="pt-2">
+            <div className="bg-sky-50/60 p-3.5 rounded-xl border border-sky-100">
               <span className="text-[10px] font-bold text-sky-600 uppercase tracking-wider flex items-center gap-1">
-                <Calendar className="w-3 h-3" /> Tanggal Mulai
+                <Calendar className="w-3.5 h-3.5" /> Tanggal
               </span>
               <div className="text-slate-900 font-extrabold text-sm mt-0.5">{item.tanggalAwal}</div>
-            </div>
-            <div className="bg-amber-50/60 p-3 rounded-xl border border-amber-100">
-              <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider flex items-center gap-1">
-                <Layers className="w-3 h-3" /> Gelombang Batch
-              </span>
-              <div className="text-amber-950 font-black text-sm mt-0.5">{item.batch}</div>
             </div>
           </div>
         </div>
