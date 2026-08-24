@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
-import { ActivityItem, ActivityFormValues, ActiveMenuType } from "@/types/activity";
+
+import { ActivityItem, ActivityFormValues, ActiveMenuType, UserRole } from "@/types/activity";
 import Swal from "sweetalert2";
 
 import { Sidebar } from "@/components/Sidebar";
@@ -10,6 +11,7 @@ import { Footer } from "@/components/Footer";
 import { Toast } from "@/components/Toast";
 import { ActivityTable } from "@/components/ActivityTable";
 import { TambahKegiatanView } from "@/components/TambahKegiatanView";
+import { UserFormView } from "@/components/UserFormView";
 import { MasterProgramView } from "@/components/MasterProgramView";
 import { MasterKeywordView } from "@/components/MasterKeywordView";
 import { MasterJenisBiayaView } from "@/components/MasterJenisBiayaView";
@@ -18,7 +20,8 @@ import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { ValidationPreviewModal } from "@/components/ValidationPreviewModal";
 
 export default function Home() {
-  // Navigation State
+  // Navigation & Role State
+  const [userRole, setUserRole] = useState<UserRole>("admin");
   const [activeMenu, setActiveMenu] = useState<ActiveMenuType>("data-kegiatan");
   const [isKegiatanOpen, setIsKegiatanOpen] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -75,6 +78,7 @@ export default function Home() {
     if (typeof window !== "undefined") {
       let path = "/data-kegiatan";
       if (menu === "tambah-kegiatan") path = "/tambah-kegiatan";
+      else if (menu === "user-form") path = "/user-form";
       else if (menu === "master-program") path = "/master-program";
       else if (menu === "master-keyword") path = "/master-keyword";
       else if (menu === "master-jenis-biaya") path = "/master-jenis-biaya";
@@ -91,11 +95,20 @@ export default function Home() {
     const syncUrlMenu = () => {
       if (typeof window !== "undefined") {
         const path = window.location.pathname;
-        if (path === "/tambah-kegiatan") setActiveMenu("tambah-kegiatan");
-        else if (path === "/master-program" || path === "/master-program-edit") setActiveMenu("master-program");
-        else if (path === "/master-keyword" || path === "/master-keyword-edit") setActiveMenu("master-keyword");
-        else if (path === "/master-jenis-biaya" || path === "/master-jenis-biaya-edit") setActiveMenu("master-jenis-biaya");
-        else if (path === "/data-kegiatan" || path === "/") setActiveMenu("data-kegiatan");
+        if (path === "/user-form") {
+          setActiveMenu("user-form");
+          setUserRole("user");
+        } else if (path === "/tambah-kegiatan") {
+          setActiveMenu("tambah-kegiatan");
+        } else if (path === "/master-program" || path === "/master-program-edit") {
+          setActiveMenu("master-program");
+        } else if (path === "/master-keyword" || path === "/master-keyword-edit") {
+          setActiveMenu("master-keyword");
+        } else if (path === "/master-jenis-biaya" || path === "/master-jenis-biaya-edit") {
+          setActiveMenu("master-jenis-biaya");
+        } else if (path === "/data-kegiatan" || path === "/") {
+          setActiveMenu("data-kegiatan");
+        }
       }
     };
 
@@ -165,7 +178,11 @@ export default function Home() {
         setIsPreviewOpen(false);
         handleResetForm();
         refetchActivities();
-        setActiveMenu("data-kegiatan");
+        if (userRole === "user") {
+          setActiveMenu("user-form");
+        } else {
+          setActiveMenu("data-kegiatan");
+        }
 
         Swal.fire({
           icon: "success",
@@ -273,6 +290,8 @@ export default function Home() {
         isKegiatanOpen={isKegiatanOpen}
         setIsKegiatanOpen={setIsKegiatanOpen}
         sidebarCollapsed={sidebarCollapsed}
+        userRole={userRole}
+        setUserRole={setUserRole}
       />
 
       {/* MAIN CONTENT WRAPPER */}
@@ -282,11 +301,23 @@ export default function Home() {
           activeMenu={activeMenu}
           sidebarCollapsed={sidebarCollapsed}
           setSidebarCollapsed={setSidebarCollapsed}
+          userRole={userRole}
+          setUserRole={setUserRole}
         />
 
         {/* MAIN BODY AREA */}
         <main className="flex-1 p-3 sm:p-6 md:p-8 space-y-6 max-w-7xl w-full mx-auto overflow-x-hidden">
-          {activeMenu === "master-program" ? (
+          {userRole === "user" || activeMenu === "user-form" ? (
+            /* HALAMAN KHUSUS PEGAWAI PLN */
+            <UserFormView
+              formValues={formValues}
+              setFormValues={setFormValues}
+              onSubmit={handleValidateAndPreview}
+              onReset={handleResetForm}
+              isValidating={isValidating}
+            />
+          ) : activeMenu === "master-program" ? (
+
             <MasterProgramView />
           ) : activeMenu === "master-keyword" ? (
             <MasterKeywordView />
@@ -303,7 +334,7 @@ export default function Home() {
               isValidating={isValidating}
             />
           ) : (
-            /* HALAMAN KHUSUS DATA KEGIATAN */
+            /* HALAMAN KHUSUS DATA KEGIATAN (ADMIN) */
             <ActivityTable
               filteredData={filteredData}
               searchQuery={searchQuery}
@@ -350,3 +381,4 @@ export default function Home() {
     </div>
   );
 }
+

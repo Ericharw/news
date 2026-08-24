@@ -52,7 +52,6 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
           el.focus();
         }
       } catch {
-        // fallback
       }
     }
   };

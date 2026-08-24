@@ -1,24 +1,32 @@
 "use client";
 
 import React, { useState } from "react";
-import { Menu, Bell, User, ChevronDown, Zap, LogOut, Settings, ShieldCheck } from "lucide-react";
-import { ActiveMenuType } from "@/types/activity";
+import { Menu, Bell, User, ChevronDown, Zap, LogOut, Settings, ShieldCheck, UserCheck, RefreshCw } from "lucide-react";
+import { ActiveMenuType, UserRole } from "@/types/activity";
 import Swal from "sweetalert2";
 
 interface HeaderProps {
   activeMenu: ActiveMenuType;
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  userRole: UserRole;
+  setUserRole: (role: UserRole) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   activeMenu,
   sidebarCollapsed,
-  setSidebarCollapsed
+  setSidebarCollapsed,
+  userRole,
+  setUserRole
 }) => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
   const getPageTitle = () => {
+    if (userRole === "user" || activeMenu === "user-form") {
+      return "Portal Input Kegiatan & Diklat";
+    }
+
     switch (activeMenu) {
       case "data-kegiatan":
         return "Data Kegiatan & Diklat";
@@ -33,6 +41,22 @@ export const Header: React.FC<HeaderProps> = ({
       default:
         return "Data Kegiatan";
     }
+  };
+
+  const handleToggleRole = () => {
+    const nextRole = userRole === "admin" ? "user" : "admin";
+    setUserRole(nextRole);
+    setShowProfileDropdown(false);
+
+    Swal.fire({
+      icon: "info",
+      title: `Beralih ke Mode ${nextRole === "admin" ? "Admin SDM" : "Pegawai PLN"}`,
+      text: nextRole === "admin"
+        ? "Anda memiliki akses penuh ke Master Data & Manajemen Kegiatan."
+        : "Anda dalam mode Pegawai untuk menginput form kegiatan diklat.",
+      confirmButtonColor: "#0072CE",
+      timer: 2000,
+    });
   };
 
   const handleLogout = () => {
@@ -71,10 +95,10 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Header Right: Notification & Profile */}
-      <div className="flex items-center gap-4 sm:gap-6">
+      {/* Header Right: Profile & Notifications */}
+      <div className="flex items-center gap-3 sm:gap-5">
         {/* Status Badge */}
-        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold">
+        <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold">
           <Zap className="w-3.5 h-3.5 fill-[#FFC72C] text-[#FFC72C]" />
           <span>Server PLN Online</span>
         </div>
@@ -86,19 +110,25 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         {/* Profile Dropdown Container */}
-        <div className="relative border-l border-slate-200 pl-4 sm:pl-6">
+        <div className="relative border-l border-slate-200 pl-3 sm:pl-5">
           <button
             onClick={() => setShowProfileDropdown(!showProfileDropdown)}
             className="flex items-center gap-3 p-1.5 rounded-2xl hover:bg-slate-100/80 transition-all text-left group cursor-pointer"
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#0072CE] to-[#00A3E0] text-white flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-[#00A3E0]/30 group-hover:ring-[#0072CE]/50 transition-all">
+            <div className={`w-10 h-10 rounded-xl text-white flex items-center justify-center font-bold text-sm shadow-sm ring-2 transition-all ${
+              userRole === "admin"
+                ? "bg-gradient-to-tr from-[#0072CE] to-[#00A3E0] ring-[#00A3E0]/30 group-hover:ring-[#0072CE]/50"
+                : "bg-gradient-to-tr from-emerald-600 to-teal-500 ring-emerald-400/30 group-hover:ring-emerald-500/50"
+            }`}>
               <User className="w-5 h-5" />
             </div>
             <div className="hidden sm:block">
               <div className="text-xs font-extrabold text-slate-900 leading-tight flex items-center gap-1">
-                <span>Admin PLN</span>
+                <span>{userRole === "admin" ? "Admin PLN" : "Pegawai PLN"}</span>
               </div>
-              <div className="text-[11px] font-medium text-slate-500">Divisi SDM & Diklat</div>
+              <div className="text-[11px] font-medium text-slate-500">
+                {userRole === "admin" ? "Divisi SDM & Diklat" : "Unit Operasional / Input"}
+              </div>
             </div>
             <ChevronDown className={`w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-transform duration-200 ${showProfileDropdown ? "rotate-180 text-[#0072CE]" : ""}`} />
           </button>
@@ -109,17 +139,36 @@ export const Header: React.FC<HeaderProps> = ({
               {/* Header Info */}
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 mb-1">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-[#0072CE] text-white flex items-center justify-center font-bold text-xs">
-                    AP
+                  <div className={`w-9 h-9 rounded-xl text-white flex items-center justify-center font-bold text-xs ${
+                    userRole === "admin" ? "bg-[#0072CE]" : "bg-emerald-600"
+                  }`}>
+                    {userRole === "admin" ? "AP" : "PLN"}
                   </div>
                   <div>
-                    <div className="text-xs font-black text-slate-900">Admin PLN</div>
-                    <div className="text-[10px] text-slate-500">admin.diklat@pln.co.id</div>
+                    <div className="text-xs font-black text-slate-900">
+                      {userRole === "admin" ? "Admin PLN" : "Pegawai PLN"}
+                    </div>
+                    <div className="text-[10px] text-slate-500">
+                      {userRole === "admin" ? "admin.diklat@pln.co.id" : "pegawai@pln.co.id"}
+                    </div>
                   </div>
                 </div>
-                <div className="mt-2.5 flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 w-fit">
-                  <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                  <span>Administrator SDM</span>
+                <div className={`mt-2.5 flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border w-fit ${
+                  userRole === "admin"
+                    ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                    : "text-sky-700 bg-sky-50 border-sky-200"
+                }`}>
+                  {userRole === "admin" ? (
+                    <>
+                      <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                      <span>Administrator SDM</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck className="w-3 h-3 text-sky-600" />
+                      <span>Pegawai / User Input</span>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -131,7 +180,7 @@ export const Header: React.FC<HeaderProps> = ({
                     Swal.fire({
                       icon: "info",
                       title: "Pengaturan Profil",
-                      text: "Halaman pengaturan profil administrator PT PLN.",
+                      text: `Halaman pengaturan profil ${userRole === "admin" ? "administrator" : "pegawai"} PT PLN.`,
                       confirmButtonColor: "#0072CE",
                     });
                   }}
@@ -140,6 +189,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <Settings className="w-4 h-4 text-slate-500" />
                   <span>Pengaturan Profil</span>
                 </button>
+
 
                 <div className="border-t border-slate-100 my-1" />
 
@@ -159,3 +209,4 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
+

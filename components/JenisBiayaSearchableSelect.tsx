@@ -25,6 +25,7 @@ const DEFAULT_OPTIONS: JenisBiayaOption[] = [
   { nama: "Cetak", singkatan: "CETAK" },
   { nama: "ATK", singkatan: "ATK" },
   { nama: "Bank", singkatan: "BANK" },
+  { nama: "Sarana Pembelajaran", singkatan: "SARJAR" },
   { nama: "5.2 SARANA", singkatan: "SBO" },
 ];
 

@@ -12,9 +12,12 @@ import {
   Database,
   BookOpen,
   KeyRound,
-  DollarSign
+  DollarSign,
+  UserCheck,
+  FileEdit,
+  RefreshCw
 } from "lucide-react";
-import { ActiveMenuType } from "@/types/activity";
+import { ActiveMenuType, UserRole } from "@/types/activity";
 
 interface SidebarProps {
   activeMenu: ActiveMenuType;
@@ -22,6 +25,8 @@ interface SidebarProps {
   isKegiatanOpen: boolean;
   setIsKegiatanOpen: (open: boolean) => void;
   sidebarCollapsed: boolean;
+  userRole: UserRole;
+  setUserRole: (role: UserRole) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -29,7 +34,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setActiveMenu,
   isKegiatanOpen,
   setIsKegiatanOpen,
-  sidebarCollapsed
+  sidebarCollapsed,
+  userRole,
+  setUserRole
 }) => {
   const [isMasterOpen, setIsMasterOpen] = useState(true);
 
@@ -105,121 +112,162 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Navigation Links */}
         <nav className="p-4 space-y-2 text-sm overflow-y-auto flex-1">
-          {/* Section Label */}
-          {!sidebarCollapsed && (
-            <div className="px-3 pt-1 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              Menu Utama
+          {/* User Role Mode vs Admin Role Mode Navigation */}
+
+          {userRole === "user" ? (
+            /* USER BIASA NAVIGATION MENU */
+            <div className="space-y-1">
+              {!sidebarCollapsed && (
+                <div className="px-3 pt-1 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Portal Pegawai
+                </div>
+              )}
+
+              <button
+                onClick={() => handleMenuClick("user-form")}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs transition-all ${
+                  activeMenu === "user-form" || activeMenu === "tambah-kegiatan"
+                    ? "bg-gradient-to-r from-[#0072CE] to-[#00A3E0] text-white shadow-md"
+                    : "text-slate-700 hover:bg-slate-100"
+                }`}
+              >
+                <FileEdit className="w-4 h-4 shrink-0" />
+                {!sidebarCollapsed && <span>Form Input Kegiatan</span>}
+              </button>
             </div>
+          ) : (
+
+            /* ADMIN NAVIGATION MENU */
+            <>
+              {!sidebarCollapsed && (
+                <div className="px-3 pt-1 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Menu Utama Admin
+                </div>
+              )}
+
+              {/* Kegiatan Parent Menu */}
+              <div>
+                <button
+                  onClick={() => setIsKegiatanOpen(!isKegiatanOpen)}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all ${
+                    activeMenu === "data-kegiatan" || activeMenu === "tambah-kegiatan" || activeMenu === "user-form"
+                      ? "text-[#0072CE] font-semibold"
+                      : ""
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <FolderKanban
+                      className={`w-5 h-5 shrink-0 ${
+                        activeMenu === "data-kegiatan" || activeMenu === "tambah-kegiatan"
+                          ? "text-[#0072CE]"
+                          : "text-slate-500"
+                      }`}
+                    />
+                    {!sidebarCollapsed && <span>Kegiatan & Diklat</span>}
+                  </div>
+                  {!sidebarCollapsed &&
+                    (isKegiatanOpen ? (
+                      <ChevronUp className="w-4 h-4 text-slate-400" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                    ))}
+                </button>
+
+                {/* Sub-items */}
+                {isKegiatanOpen && !sidebarCollapsed && (
+                  <div className="ml-5 pl-3 border-l-2 border-slate-100 my-1 space-y-1">
+                    <button
+                      onClick={() => handleMenuClick("data-kegiatan")}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                        activeMenu === "data-kegiatan"
+                          ? "bg-[#0072CE] text-white shadow-xs"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                      }`}
+                    >
+                      <ListFilter className="w-3.5 h-3.5" />
+                      <span>Data Kegiatan</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleMenuClick("tambah-kegiatan")}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                        activeMenu === "tambah-kegiatan"
+                          ? "bg-[#FFC72C] text-slate-950 font-bold shadow-xs"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                      }`}
+                    >
+                      <PlusCircle className="w-3.5 h-3.5" />
+                      <span>Tambah Kegiatan</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Master Data Parent Menu */}
+              <div>
+                <button
+                  onClick={() => setIsMasterOpen(!isMasterOpen)}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all ${
+                    isMasterActive ? "text-[#0072CE] font-bold" : ""
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Database
+                      className={`w-5 h-5 shrink-0 ${isMasterActive ? "text-[#0072CE]" : "text-slate-500"}`}
+                    />
+                    {!sidebarCollapsed && <span>Master Data</span>}
+                  </div>
+                  {!sidebarCollapsed &&
+                    (isMasterOpen ? (
+                      <ChevronUp className="w-4 h-4 text-slate-400" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                    ))}
+                </button>
+
+                {/* Sub-items */}
+                {isMasterOpen && !sidebarCollapsed && (
+                  <div className="ml-5 pl-3 border-l-2 border-slate-100 my-1 space-y-1">
+                    <button
+                      onClick={() => handleMenuClick("master-program")}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                        activeMenu === "master-program"
+                          ? "bg-[#0072CE] text-white shadow-xs"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                      }`}
+                    >
+                      <BookOpen className="w-3.5 h-3.5" />
+                      <span>Master Program</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleMenuClick("master-keyword")}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                        activeMenu === "master-keyword"
+                          ? "bg-rose-600 text-white shadow-xs"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                      }`}
+                    >
+                      <KeyRound className="w-3.5 h-3.5" />
+                      <span>Master Keyword</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleMenuClick("master-jenis-biaya")}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                        activeMenu === "master-jenis-biaya"
+                          ? "bg-[#FFC72C] text-slate-950 font-bold shadow-xs"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                      }`}
+                    >
+                      <DollarSign className="w-3.5 h-3.5" />
+                      <span>Master Jenis Biaya</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
           )}
-
-          {/* Kegiatan Parent Menu */}
-          <div>
-            <button
-              onClick={() => setIsKegiatanOpen(!isKegiatanOpen)}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all ${activeMenu === "data-kegiatan" || activeMenu === "tambah-kegiatan"
-                  ? "text-[#0072CE] font-semibold"
-                  : ""
-                }`}
-            >
-              <div className="flex items-center gap-3">
-                <FolderKanban className={`w-5 h-5 shrink-0 ${activeMenu === "data-kegiatan" || activeMenu === "tambah-kegiatan" ? "text-[#0072CE]" : "text-slate-500"}`} />
-                {!sidebarCollapsed && <span>Kegiatan & Diklat</span>}
-              </div>
-              {!sidebarCollapsed && (
-                isKegiatanOpen ? (
-                  <ChevronUp className="w-4 h-4 text-slate-400" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
-                )
-              )}
-            </button>
-
-            {/* Sub-items */}
-            {isKegiatanOpen && !sidebarCollapsed && (
-              <div className="ml-5 pl-3 border-l-2 border-slate-100 my-1 space-y-1">
-                <button
-                  onClick={() => handleMenuClick("data-kegiatan")}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${activeMenu === "data-kegiatan"
-                      ? "bg-[#0072CE] text-white shadow-xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                    }`}
-                >
-                  <ListFilter className="w-3.5 h-3.5" />
-                  <span>Data Kegiatan</span>
-                </button>
-
-                <button
-                  onClick={() => handleMenuClick("tambah-kegiatan")}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${activeMenu === "tambah-kegiatan"
-                      ? "bg-[#FFC72C] text-slate-950 font-bold shadow-xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                    }`}
-                >
-                  <PlusCircle className="w-3.5 h-3.5" />
-                  <span>Tambah Kegiatan</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Master Data Parent Menu */}
-          <div>
-            <button
-              onClick={() => setIsMasterOpen(!isMasterOpen)}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all ${isMasterActive ? "text-[#0072CE] font-bold" : ""
-                }`}
-            >
-              <div className="flex items-center gap-3">
-                <Database className={`w-5 h-5 shrink-0 ${isMasterActive ? "text-[#0072CE]" : "text-slate-500"}`} />
-                {!sidebarCollapsed && <span>Master Data</span>}
-              </div>
-              {!sidebarCollapsed && (
-                isMasterOpen ? (
-                  <ChevronUp className="w-4 h-4 text-slate-400" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
-                )
-              )}
-            </button>
-
-            {/* Sub-items */}
-            {isMasterOpen && !sidebarCollapsed && (
-              <div className="ml-5 pl-3 border-l-2 border-slate-100 my-1 space-y-1">
-                <button
-                  onClick={() => handleMenuClick("master-program")}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${activeMenu === "master-program"
-                      ? "bg-[#0072CE] text-white shadow-xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                    }`}
-                >
-                  <BookOpen className="w-3.5 h-3.5" />
-                  <span>Master Program</span>
-                </button>
-
-                <button
-                  onClick={() => handleMenuClick("master-keyword")}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${activeMenu === "master-keyword"
-                      ? "bg-rose-600 text-white shadow-xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                    }`}
-                >
-                  <KeyRound className="w-3.5 h-3.5" />
-                  <span>Master Keyword</span>
-                </button>
-
-                <button
-                  onClick={() => handleMenuClick("master-jenis-biaya")}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${activeMenu === "master-jenis-biaya"
-                      ? "bg-[#FFC72C] text-slate-950 font-bold shadow-xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                    }`}
-                >
-                  <DollarSign className="w-3.5 h-3.5" />
-                  <span>Master Jenis Biaya</span>
-                </button>
-              </div>
-            )}
-          </div>
         </nav>
       </div>
 

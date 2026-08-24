@@ -38,9 +38,13 @@ export interface MasterJenisBiayaItem {
   keterangan?: string;
 }
 
+export type UserRole = "admin" | "user";
+
 export type ActiveMenuType =
   | "data-kegiatan"
   | "tambah-kegiatan"
   | "master-program"
   | "master-keyword"
-  | "master-jenis-biaya";
+  | "master-jenis-biaya"
+  | "user-form";
+

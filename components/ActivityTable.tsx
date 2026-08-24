@@ -48,6 +48,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
     "Bank",
     "5.2 SARANA",
   ]);
+  const [masterJenisBiayaMap, setMasterJenisBiayaMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     async function loadMasterJenisBiaya() {
@@ -55,7 +56,17 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
         const res = await fetch("/api/master/jenis-biaya");
         const json = await res.json();
         if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-          const names: string[] = json.data.map((item: { nama: string }) => item.nama).filter(Boolean);
+          const map: Record<string, string> = {};
+          const names: string[] = [];
+          json.data.forEach((item: { nama: string; keterangan?: string }) => {
+            if (item.nama) {
+              names.push(item.nama);
+              if (item.keterangan) {
+                map[item.nama.toLowerCase().trim()] = item.keterangan.trim();
+              }
+            }
+          });
+          setMasterJenisBiayaMap(map);
           const combined = Array.from(
             new Set(["all", ...names, "Perjalanan Dinas", "Konsumsi", "Akomodasi", "Amortisasi", "Iuran", "Pajak", "Cetak", "ATK", "Bank", "5.2 SARANA"])
           );
@@ -67,6 +78,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
     }
     loadMasterJenisBiaya();
   }, []);
+
   const getJenisBiayaBadge = (jenis: string) => {
     switch (jenis) {
       case "Perjalanan Dinas":
@@ -100,27 +112,53 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
   };
 
   const getSingkatanJenisBiaya = (jenis: string) => {
-    const trimmed = (jenis || "").trim().toUpperCase();
-    if (trimmed.includes("KONSUM") || trimmed === "KONS") return "KONS";
-    if (trimmed.includes("AMOR")) return "AMOR";
+    if (!jenis) return "";
+    const rawTrimmed = jenis.trim();
+    const lowerKey = rawTrimmed.toLowerCase();
+
+    // 1. Direct match or alias from master database
+    if (masterJenisBiayaMap[lowerKey]) {
+      return masterJenisBiayaMap[lowerKey].toUpperCase();
+    }
+
+    const foundEntry = Object.entries(masterJenisBiayaMap).find(
+      ([k]) => lowerKey.includes(k) || k.includes(lowerKey)
+    );
+    if (foundEntry && foundEntry[1]) {
+      return foundEntry[1].toUpperCase();
+    }
+
+    // 2. Keyword fallback logic
+    const trimmed = rawTrimmed.toUpperCase();
+    if (trimmed.includes("SARJAR") || trimmed.includes("SARANA")) return "SARJAR";
+    if (trimmed.includes("AMORTISASI") || trimmed.includes("AMOR")) return "AMOR";
+    if (trimmed.includes("PAJAK") || trimmed.includes("RETRIBUSI")) return "PAJAK";
     if (trimmed.includes("IURAN")) return "IURAN";
-    if (trimmed.includes("PAJAK")) return "PAJAK";
     if (trimmed.includes("CETAK")) return "CETAK";
     if (trimmed.includes("ATK")) return "ATK";
+    if (trimmed.includes("KONSUM") || trimmed.includes("KONS")) return "KONS";
     if (trimmed.includes("BANK")) return "BANK";
-    if (trimmed.includes("PERJALANAN") || trimmed === "PD" || trimmed === "PERDIN") return "PERDIN";
-    if (trimmed.includes("AKOMODASI") || trimmed === "AKM" || trimmed === "AKOM") return "AKOM";
+    if (trimmed.includes("PERJALANAN") || trimmed === "PD" || trimmed.includes("PERDIN")) return "PERDIN";
+    if (trimmed.includes("AKOMODASI") || trimmed === "AKM" || trimmed.includes("AKOM")) return "AKOM";
 
-    switch (jenis) {
-      case "Perjalanan Dinas":
-        return "PERDIN";
-      case "Konsumsi":
-        return "KONS";
-      case "Akomodasi":
-        return "AKOM";
-      default:
-        return jenis.length > 6 ? jenis.substring(0, 5).toUpperCase() : jenis.toUpperCase();
+    if (/^[A-Z0-9\s-]{2,8}$/.test(rawTrimmed)) {
+      return rawTrimmed.toUpperCase();
     }
+
+    const clean = trimmed.replace(/^[0-9.]+\s*/, "");
+    return clean.length > 8 ? clean.substring(0, 6) : clean;
+  };
+
+  const formatTanggal2Digit = (tanggal: string) => {
+    if (!tanggal) return "";
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(tanggal)) {
+      return tanggal.replace(/(\d{2}\/\d{2}\/)\d{2}(\d{2})/, "$1$2");
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(tanggal)) {
+      const [y, m, d] = tanggal.split("-");
+      return `${d}/${m}/${y.slice(-2)}`;
+    }
+    return tanggal.replace(/\b20(\d{2})\b/g, "$1");
   };
 
   const getRingkasanSingkatan = (item: ActivityItem) => {
@@ -128,10 +166,13 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
     const subjekCode = getSingkatanSubjek(item.subjekKegiatan);
     const objekText = item.objekKegiatan || "";
     const jbCode = getSingkatanJenisBiaya(item.jenisBiaya);
+    const tglShort = formatTanggal2Digit(item.tanggalAwal);
 
-    return objekText
-      ? `${progCode} | ${subjekCode} | ${objekText} | ${jbCode} | ${item.tanggalAwal}`
-      : `${progCode} | ${subjekCode} | ${jbCode} | ${item.tanggalAwal}`;
+    const fullStr = objekText
+      ? `${progCode}/${subjekCode}/${objekText}/${jbCode}/${tglShort}`
+      : `${progCode}/${subjekCode}/${jbCode}/${tglShort}`;
+
+    return fullStr.slice(0, 50);
   };
 
   const handleExportExcel = () => {
@@ -310,7 +351,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                   </td>
                   <td className="py-3 px-2 sm:px-3">
                     <span
-                      className={`inline-block px-2 py-0.5 rounded-md text-[11px] whitespace-nowrap ${getJenisBiayaBadge(
+                      className={`inline-block px-2 py-1 rounded-md text-[11px] leading-tight whitespace-normal break-words max-w-[130px] ${getJenisBiayaBadge(
                         row.jenisBiaya
                       )}`}
                     >
