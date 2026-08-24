@@ -252,7 +252,7 @@ export const MasterProgramView: React.FC<MasterProgramViewProps> = ({ initialEdi
             </span>
           </div>
           <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
-            Daftar acuan program pelatihan & diklat resmi PT PLN (Persero) dari database.
+            Daftar acuan program resmi PT PLN (Persero) dari database.
           </p>
         </div>
 

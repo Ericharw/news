@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Search, Filter, ChevronDown, Eye, Trash2, CalendarDays, PlusCircle, FileSpreadsheet } from "lucide-react";
 import * as XLSX from "xlsx";
 import { ActivityItem } from "@/types/activity";
@@ -35,6 +35,38 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
   onDeleteItem,
   onNavigateToAdd
 }) => {
+  const [filterOptions, setFilterOptions] = useState<string[]>([
+    "all",
+    "Perjalanan Dinas",
+    "Konsumsi",
+    "Akomodasi",
+    "Amortisasi",
+    "Iuran",
+    "Pajak",
+    "Cetak",
+    "ATK",
+    "Bank",
+    "5.2 SARANA",
+  ]);
+
+  useEffect(() => {
+    async function loadMasterJenisBiaya() {
+      try {
+        const res = await fetch("/api/master/jenis-biaya");
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          const names: string[] = json.data.map((item: { nama: string }) => item.nama).filter(Boolean);
+          const combined = Array.from(
+            new Set(["all", ...names, "Perjalanan Dinas", "Konsumsi", "Akomodasi", "Amortisasi", "Iuran", "Pajak", "Cetak", "ATK", "Bank", "5.2 SARANA"])
+          );
+          setFilterOptions(combined);
+        }
+      } catch (err) {
+        console.error("Error loading master jenis biaya for filter:", err);
+      }
+    }
+    loadMasterJenisBiaya();
+  }, []);
   const getJenisBiayaBadge = (jenis: string) => {
     switch (jenis) {
       case "Perjalanan Dinas":
@@ -131,7 +163,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
             </span>
           </div>
           <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
-            Daftar seluruh kegiatan pelatihan & diklat yang telah terdaftar.
+            Daftar seluruh kegiatan yang telah terdaftar.
           </p>
         </div>
 
@@ -160,9 +192,8 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
           <div className="relative">
             <button
               onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-              className={`flex items-center gap-2 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-all shadow-2xs ${
-                filterJenisBiaya !== "all" ? "border-[#0072CE] text-[#0072CE] bg-sky-50/80 ring-2 ring-[#0072CE]/20" : ""
-              }`}
+              className={`flex items-center gap-2 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-all shadow-2xs ${filterJenisBiaya !== "all" ? "border-[#0072CE] text-[#0072CE] bg-sky-50/80 ring-2 ring-[#0072CE]/20" : ""
+                }`}
             >
               <Filter className="w-3.5 h-3.5 text-slate-500" />
               <span>Filter</span>
@@ -171,26 +202,28 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
 
             {/* Filter Dropdown Popover */}
             {showFilterDropdown && (
-              <div className="absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-2xl shadow-xl z-30 p-2 text-xs animate-in fade-in zoom-in-95">
-                <div className="font-bold text-slate-400 px-3 py-1.5 uppercase text-[10px] tracking-wider">
+              <div className="absolute right-0 mt-2 w-60 max-h-72 overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl z-30 p-2 text-xs animate-in fade-in zoom-in-95 divide-y divide-slate-100">
+                <div className="font-bold text-slate-400 px-3 py-1.5 uppercase text-[10px] tracking-wider sticky top-0 bg-white z-10">
                   Filter Jenis Biaya
                 </div>
-                {["all", "Perjalanan Dinas", "Konsumsi", "Akomodasi"].map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => {
-                      setFilterJenisBiaya(cat);
-                      setShowFilterDropdown(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 rounded-xl transition-all font-medium ${
-                      filterJenisBiaya === cat
-                        ? "bg-[#0072CE] text-white font-bold shadow-xs"
-                        : "text-slate-700 hover:bg-slate-50"
-                    }`}
-                  >
-                    {cat === "all" ? "Semua Jenis Biaya" : cat}
-                  </button>
-                ))}
+                <div className="pt-1 space-y-0.5">
+                  {filterOptions.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => {
+                        setFilterJenisBiaya(cat);
+                        setShowFilterDropdown(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-xl transition-all font-medium truncate flex items-center justify-between ${filterJenisBiaya === cat
+                          ? "bg-[#0072CE] text-white font-bold shadow-xs"
+                          : "text-slate-700 hover:bg-slate-50"
+                        }`}
+                    >
+                      <span className="truncate pr-2">{cat === "all" ? "Semua Jenis Biaya" : cat}</span>
+                      {filterJenisBiaya === cat && <span className="text-xs">✓</span>}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -344,11 +377,10 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
             <button
               key={page}
               onClick={() => setCurrentPage(page)}
-              className={`w-8 h-8 rounded-xl font-extrabold flex items-center justify-center transition-all ${
-                currentPage === page
+              className={`w-8 h-8 rounded-xl font-extrabold flex items-center justify-center transition-all ${currentPage === page
                   ? "bg-[#0072CE] text-white shadow-xs"
                   : "border border-slate-200 text-slate-700 hover:bg-slate-100"
-              }`}
+                }`}
             >
               {page}
             </button>

@@ -71,7 +71,7 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
             </h3>
           </div>
           <p className="text-slate-500 text-xs mt-0.5">
-            Input data kegiatan / pelatihan diklat baru.
+            Input data kegiatan baru.
           </p>
         </div>
         <span className="px-2 py-1 bg-amber-50 text-amber-800 text-[10px] font-bold uppercase tracking-wider rounded-md border border-amber-200">
