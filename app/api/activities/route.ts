@@ -27,9 +27,25 @@ async function ensureTableExists() {
         objek_kegiatan TEXT,
         tanggal_awal VARCHAR(50) NOT NULL,
         batch VARCHAR(50) NOT NULL,
+        status_nac VARCHAR(50) DEFAULT 'AMAN',
+        catatan_nac TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+    // Alter table if status_nac column doesn't exist yet
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='activities' AND column_name='status_nac') THEN
+          ALTER TABLE activities ADD COLUMN status_nac VARCHAR(50) DEFAULT 'AMAN';
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='activities' AND column_name='catatan_nac') THEN
+          ALTER TABLE activities ADD COLUMN catatan_nac TEXT;
+        END IF;
+      END $$;
+    `);
+  } catch (err) {
+    console.warn("ensureTableExists warning:", err);
   } finally {
     client.release();
   }
@@ -41,7 +57,7 @@ export async function GET() {
     await ensureTableExists();
     const result = await pool.query("SELECT * FROM activities ORDER BY id DESC;");
 
-    const activities = result.rows.map((row, index) => ({
+    const activities: ActivityItem[] = result.rows.map((row, index) => ({
       no: index + 1,
       id: row.id,
       namaProgram: row.nama_program,
@@ -50,6 +66,8 @@ export async function GET() {
       objekKegiatan: row.objek_kegiatan,
       tanggalAwal: row.tanggal_awal,
       batch: row.batch,
+      statusNac: row.status_nac || "AMAN",
+      catatanNac: row.catatan_nac || "",
     }));
 
     // Update memory cache
@@ -65,7 +83,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { namaProgram, subjekKegiatan, jenisBiaya, objekKegiatan, tanggalAwal, batch } = body;
+    const { namaProgram, subjekKegiatan, jenisBiaya, objekKegiatan, tanggalAwal, batch, statusNac, catatanNac } = body;
 
     if (!namaProgram || !subjekKegiatan || !jenisBiaya) {
       return NextResponse.json(
@@ -74,14 +92,17 @@ export async function POST(request: Request) {
       );
     }
 
+    const finalStatusNac = statusNac || "AMAN";
+    const finalCatatanNac = catatanNac || "";
+
     try {
       await ensureTableExists();
       const countRes = await pool.query("SELECT COUNT(*) FROM activities;");
       const nextNo = parseInt(countRes.rows[0].count, 10) + 1;
 
       const result = await pool.query(
-        `INSERT INTO activities (no, nama_program, subjek_kegiatan, jenis_biaya, objek_kegiatan, tanggal_awal, batch)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `INSERT INTO activities (no, nama_program, subjek_kegiatan, jenis_biaya, objek_kegiatan, tanggal_awal, batch, status_nac, catatan_nac)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          RETURNING *;`,
         [
           nextNo,
@@ -91,6 +112,8 @@ export async function POST(request: Request) {
           objekKegiatan || subjekKegiatan,
           tanggalAwal || "20/08/2026",
           batch ? (batch.startsWith("Batch") ? batch : `Batch ${batch}`) : "Batch 1",
+          finalStatusNac,
+          finalCatatanNac
         ]
       );
 
@@ -104,6 +127,8 @@ export async function POST(request: Request) {
         objekKegiatan: row.objek_kegiatan,
         tanggalAwal: row.tanggal_awal,
         batch: row.batch,
+        statusNac: row.status_nac || finalStatusNac,
+        catatanNac: row.catatan_nac || finalCatatanNac,
       };
 
       memoryActivities.unshift(newItem);
@@ -120,6 +145,8 @@ export async function POST(request: Request) {
         objekKegiatan: objekKegiatan || subjekKegiatan,
         tanggalAwal: tanggalAwal || "20/08/2026",
         batch: batch ? (batch.startsWith("Batch") ? batch : `Batch ${batch}`) : "Batch 1",
+        statusNac: finalStatusNac,
+        catatanNac: finalCatatanNac,
       };
 
       // Add to memory list
@@ -127,6 +154,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json({ success: true, data: newItem }, { status: 201 });
     }
+
   } catch (error: unknown) {
     console.error("Database POST Error:", error);
     return NextResponse.json(

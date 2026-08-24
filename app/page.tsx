@@ -140,10 +140,23 @@ export default function Home() {
       const json = await res.json();
 
       if (json.success) {
-        setIsSafe(json.isSafe);
-        setDetectedKeywords(json.detectedKeywords || []);
+        const isClean = json.isSafe;
+        const keywords = json.detectedKeywords || [];
+        const statusVal = isClean ? "AMAN" : "TERDETEKSI_NAC";
+        const catatanVal = isClean
+          ? ""
+          : keywords.map((k: { keyword: string; field: string; category: string }) => `Kata "${k.keyword}" pada ${k.field} (${k.category})`).join("; ");
+
+        setIsSafe(isClean);
+        setDetectedKeywords(keywords);
+        setFormValues((prev) => ({
+          ...prev,
+          statusNac: statusVal,
+          catatanNac: catatanVal
+        }));
         setIsPreviewOpen(true);
       } else {
+
         Swal.fire({
           icon: "error",
           title: "Gagal Validasi",

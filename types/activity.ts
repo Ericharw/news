@@ -9,6 +9,8 @@ export interface ActivityItem {
   objekKegiatan?: string;
   tanggalAwal: string;
   batch: string;
+  statusNac?: "AMAN" | "TERDETEKSI_NAC";
+  catatanNac?: string;
 }
 
 export interface ActivityFormValues {
@@ -18,7 +20,10 @@ export interface ActivityFormValues {
   objekKegiatan: string;
   tanggalAwal: string;
   batch: string;
+  statusNac?: "AMAN" | "TERDETEKSI_NAC";
+  catatanNac?: string;
 }
+
 
 export interface MasterProgramItem {
   id: number;
