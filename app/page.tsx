@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { ActivityItem, ActivityFormValues, ActiveMenuType } from "@/types/activity";
-import { INITIAL_ACTIVITIES } from "@/data/initialActivities";
 import Swal from "sweetalert2";
 
 import { Sidebar } from "@/components/Sidebar";
@@ -25,7 +24,7 @@ export default function Home() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Table Data State
-  const [dataList, setDataList] = useState<ActivityItem[]>(INITIAL_ACTIVITIES);
+  const [dataList, setDataList] = useState<ActivityItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterJenisBiaya, setFilterJenisBiaya] = useState("all");
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);

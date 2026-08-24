@@ -44,9 +44,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside
-      className={`${
-        sidebarCollapsed ? "w-0 md:w-20 border-r-0 md:border-r overflow-hidden" : "w-64"
-      } bg-white border-r border-slate-200/80 flex flex-col justify-between transition-all duration-300 relative z-20 shrink-0 h-screen sticky top-0 shadow-xs overflow-hidden`}
+      className={`${sidebarCollapsed ? "w-0 md:w-20 border-r-0 md:border-r overflow-hidden" : "w-64"
+        } bg-white border-r border-slate-200/80 flex flex-col justify-between transition-all duration-300 relative z-20 shrink-0 h-screen sticky top-0 shadow-xs overflow-hidden`}
     >
       {/* Top Header & Scrollable Nav */}
       <div className="flex flex-col min-h-0 flex-1">
@@ -117,11 +116,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div>
             <button
               onClick={() => setIsKegiatanOpen(!isKegiatanOpen)}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all ${
-                activeMenu === "data-kegiatan" || activeMenu === "tambah-kegiatan"
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all ${activeMenu === "data-kegiatan" || activeMenu === "tambah-kegiatan"
                   ? "text-[#0072CE] font-semibold"
                   : ""
-              }`}
+                }`}
             >
               <div className="flex items-center gap-3">
                 <FolderKanban className={`w-5 h-5 shrink-0 ${activeMenu === "data-kegiatan" || activeMenu === "tambah-kegiatan" ? "text-[#0072CE]" : "text-slate-500"}`} />
@@ -141,11 +139,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="ml-5 pl-3 border-l-2 border-slate-100 my-1 space-y-1">
                 <button
                   onClick={() => handleMenuClick("data-kegiatan")}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
-                    activeMenu === "data-kegiatan"
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${activeMenu === "data-kegiatan"
                       ? "bg-[#0072CE] text-white shadow-xs"
                       : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                  }`}
+                    }`}
                 >
                   <ListFilter className="w-3.5 h-3.5" />
                   <span>Data Kegiatan</span>
@@ -153,11 +150,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 <button
                   onClick={() => handleMenuClick("tambah-kegiatan")}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                    activeMenu === "tambah-kegiatan"
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${activeMenu === "tambah-kegiatan"
                       ? "bg-[#FFC72C] text-slate-950 font-bold shadow-xs"
                       : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                  }`}
+                    }`}
                 >
                   <PlusCircle className="w-3.5 h-3.5" />
                   <span>Tambah Kegiatan</span>
@@ -170,9 +166,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div>
             <button
               onClick={() => setIsMasterOpen(!isMasterOpen)}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all ${
-                isMasterActive ? "text-[#0072CE] font-bold" : ""
-              }`}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all ${isMasterActive ? "text-[#0072CE] font-bold" : ""
+                }`}
             >
               <div className="flex items-center gap-3">
                 <Database className={`w-5 h-5 shrink-0 ${isMasterActive ? "text-[#0072CE]" : "text-slate-500"}`} />
@@ -192,11 +187,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="ml-5 pl-3 border-l-2 border-slate-100 my-1 space-y-1">
                 <button
                   onClick={() => handleMenuClick("master-program")}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
-                    activeMenu === "master-program"
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${activeMenu === "master-program"
                       ? "bg-[#0072CE] text-white shadow-xs"
                       : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                  }`}
+                    }`}
                 >
                   <BookOpen className="w-3.5 h-3.5" />
                   <span>Master Program</span>
@@ -204,11 +198,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 <button
                   onClick={() => handleMenuClick("master-keyword")}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
-                    activeMenu === "master-keyword"
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${activeMenu === "master-keyword"
                       ? "bg-rose-600 text-white shadow-xs"
                       : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                  }`}
+                    }`}
                 >
                   <KeyRound className="w-3.5 h-3.5" />
                   <span>Master Keyword</span>
@@ -216,11 +209,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 <button
                   onClick={() => handleMenuClick("master-jenis-biaya")}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
-                    activeMenu === "master-jenis-biaya"
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${activeMenu === "master-jenis-biaya"
                       ? "bg-[#FFC72C] text-slate-950 font-bold shadow-xs"
                       : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                  }`}
+                    }`}
                 >
                   <DollarSign className="w-3.5 h-3.5" />
                   <span>Master Jenis Biaya</span>
@@ -236,7 +228,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {!sidebarCollapsed ? (
           <div className="flex items-center gap-2 text-slate-600 text-xs font-semibold relative z-10">
             <Zap className="w-4 h-4 fill-[#00A3E0] text-[#00A3E0]" />
-            <span className="text-[11px] text-slate-500">PT PLN (Persero) © 2026</span>
+            <span className="text-[11px] text-slate-500">PT PLN (Persero) UPDL Surabaya 2026</span>
           </div>
         ) : (
           <div className="flex justify-center text-slate-400">

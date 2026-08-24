@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import pool from "@/lib/db";
-import { INITIAL_ACTIVITIES } from "@/data/initialActivities";
 import { ActivityItem } from "@/types/activity";
 
 // In-memory store fallback so data is ALWAYS saved even before PostgreSQL password is set in .env
-let memoryActivities: ActivityItem[] = [...INITIAL_ACTIVITIES];
+let memoryActivities: ActivityItem[] = [];
 
 export function getMemoryActivities() {
   return memoryActivities;
@@ -14,7 +13,7 @@ export function setMemoryActivities(items: ActivityItem[]) {
   memoryActivities = items;
 }
 
-// Auto-create table and seed if not exists
+// Auto-create table if not exists
 async function ensureTableExists() {
   const client = await pool.connect();
   try {
@@ -31,26 +30,6 @@ async function ensureTableExists() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-
-    // Check if table is empty, seed initial data
-    const countResult = await client.query("SELECT COUNT(*) FROM activities;");
-    if (parseInt(countResult.rows[0].count, 10) === 0) {
-      for (const item of INITIAL_ACTIVITIES) {
-        await client.query(
-          `INSERT INTO activities (no, nama_program, subjek_kegiatan, jenis_biaya, objek_kegiatan, tanggal_awal, batch)
-           VALUES ($1, $2, $3, $4, $5, $6, $7);`,
-          [
-            item.no,
-            item.namaProgram,
-            item.subjekKegiatan,
-            item.jenisBiaya,
-            item.objekKegiatan || item.subjekKegiatan,
-            item.tanggalAwal,
-            item.batch,
-          ]
-        );
-      }
-    }
   } finally {
     client.release();
   }

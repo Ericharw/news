@@ -16,10 +16,16 @@ interface JenisBiayaSearchableSelectProps {
 }
 
 const DEFAULT_OPTIONS: JenisBiayaOption[] = [
-  { nama: "5.2 SARANA", singkatan: "SBO" },
   { nama: "Perjalanan Dinas", singkatan: "PERDIN" },
-  { nama: "Konsumsi", singkatan: "KONSUM" },
+  { nama: "Konsumsi", singkatan: "KONS" },
   { nama: "Akomodasi", singkatan: "AKOM" },
+  { nama: "Amortisasi", singkatan: "AMOR" },
+  { nama: "Iuran", singkatan: "IURAN" },
+  { nama: "Pajak", singkatan: "PAJAK" },
+  { nama: "Cetak", singkatan: "CETAK" },
+  { nama: "ATK", singkatan: "ATK" },
+  { nama: "Bank", singkatan: "BANK" },
+  { nama: "5.2 SARANA", singkatan: "SBO" },
 ];
 
 export const JenisBiayaSearchableSelect: React.FC<JenisBiayaSearchableSelectProps> = ({

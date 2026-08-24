@@ -1,8 +1,10 @@
 "use client";
 
 import React from "react";
-import { Search, Filter, ChevronDown, Eye, Trash2, CalendarDays, PlusCircle } from "lucide-react";
+import { Search, Filter, ChevronDown, Eye, Trash2, CalendarDays, PlusCircle, FileSpreadsheet } from "lucide-react";
+import * as XLSX from "xlsx";
 import { ActivityItem } from "@/types/activity";
+import { PROGRAM_OPTIONS } from "@/data/programOptions";
 
 interface ActivityTableProps {
   filteredData: ActivityItem[];
@@ -42,8 +44,79 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
       case "Akomodasi":
         return "bg-amber-50 text-amber-800 border border-amber-200/80 font-bold";
       default:
-        return "bg-slate-100 text-slate-700 border border-slate-200 font-semibold";
+        return "bg-[#0072CE]/10 text-[#0072CE] border border-[#0072CE]/20 font-semibold";
     }
+  };
+
+  const getSingkatanProgram = (namaProgram: string) => {
+    const match = PROGRAM_OPTIONS.find(
+      (p) =>
+        p.label.toLowerCase() === namaProgram.toLowerCase() ||
+        p.code.toLowerCase() === namaProgram.toLowerCase() ||
+        namaProgram.includes(`(${p.code})`)
+    );
+    if (match) return match.code;
+    const words = namaProgram.replace(/[^a-zA-Z0-9\s]/g, "").split(/\s+/).filter(Boolean);
+    if (words.length === 1) return words[0].substring(0, 5).toUpperCase();
+    return words.map((w) => w[0].toUpperCase()).join("");
+  };
+
+  const getSingkatanSubjek = (subjek: string) => {
+    const words = subjek.replace(/[^a-zA-Z0-9\s]/g, "").split(/\s+/).filter(Boolean);
+    if (words.length <= 2) return subjek;
+    return words.map((w) => w[0].toUpperCase()).join("");
+  };
+
+  const getSingkatanJenisBiaya = (jenis: string) => {
+    const trimmed = (jenis || "").trim().toUpperCase();
+    if (trimmed.includes("KONSUM") || trimmed === "KONS") return "KONS";
+    if (trimmed.includes("AMOR")) return "AMOR";
+    if (trimmed.includes("IURAN")) return "IURAN";
+    if (trimmed.includes("PAJAK")) return "PAJAK";
+    if (trimmed.includes("CETAK")) return "CETAK";
+    if (trimmed.includes("ATK")) return "ATK";
+    if (trimmed.includes("BANK")) return "BANK";
+    if (trimmed.includes("PERJALANAN") || trimmed === "PD" || trimmed === "PERDIN") return "PERDIN";
+    if (trimmed.includes("AKOMODASI") || trimmed === "AKM" || trimmed === "AKOM") return "AKOM";
+
+    switch (jenis) {
+      case "Perjalanan Dinas":
+        return "PERDIN";
+      case "Konsumsi":
+        return "KONS";
+      case "Akomodasi":
+        return "AKOM";
+      default:
+        return jenis.length > 6 ? jenis.substring(0, 5).toUpperCase() : jenis.toUpperCase();
+    }
+  };
+
+  const getRingkasanSingkatan = (item: ActivityItem) => {
+    const progCode = getSingkatanProgram(item.namaProgram);
+    const subjekCode = getSingkatanSubjek(item.subjekKegiatan);
+    const objekText = item.objekKegiatan || "";
+    const jbCode = getSingkatanJenisBiaya(item.jenisBiaya);
+
+    return objekText
+      ? `${progCode} | ${subjekCode} | ${objekText} | ${jbCode} | ${item.tanggalAwal}`
+      : `${progCode} | ${subjekCode} | ${jbCode} | ${item.tanggalAwal}`;
+  };
+
+  const handleExportExcel = () => {
+    const dataToExport = filteredData.map((item, idx) => ({
+      "No": idx + 1,
+      "Nama Program": item.namaProgram,
+      "Subjek Kegiatan": item.subjekKegiatan,
+      "Objek Kegiatan": item.objekKegiatan || "-",
+      "Jenis Biaya": item.jenisBiaya,
+      "Tanggal": item.tanggalAwal,
+      "Ringkasan Isi Form": getRingkasanSingkatan(item),
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Data Kegiatan");
+    XLSX.writeFile(workbook, `Data_Kegiatan_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   return (
@@ -122,6 +195,16 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
             )}
           </div>
 
+          {/* Export Excel Button */}
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-xs border border-emerald-500 cursor-pointer shrink-0"
+            title="Export ke Excel"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span className="hidden sm:inline">Export Excel</span>
+          </button>
+
           {/* Add Activity Action Button */}
           {onNavigateToAdd && (
             <button
@@ -155,20 +238,21 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
       <div className="overflow-x-auto rounded-xl border border-slate-200/80 shadow-2xs">
         <table className="w-full text-left border-collapse text-xs sm:text-sm">
           <thead>
-            <tr className="bg-slate-100/70 border-b border-slate-200 text-slate-800 font-bold uppercase tracking-wider text-[11px]">
-              <th className="py-3.5 px-3.5 w-12 text-center">No</th>
-              <th className="py-3.5 px-4">Nama Program</th>
-              <th className="py-3.5 px-4">Subjek Kegiatan</th>
-              <th className="py-3.5 px-4">Jenis Biaya</th>
-              <th className="py-3.5 px-4">Tanggal</th>
-              <th className="py-3.5 px-4">Ringkasan Isi Form</th>
-              <th className="py-3.5 px-4 text-center">Aksi</th>
+            <tr className="bg-slate-100/70 border-b border-slate-200 text-slate-800 font-bold uppercase tracking-wider text-[10px] sm:text-[11px]">
+              <th className="py-3 px-2 text-center w-8 sm:w-10">No</th>
+              <th className="py-3 px-2 sm:px-3">Nama Program</th>
+              <th className="py-3 px-2 sm:px-3">Subjek Kegiatan</th>
+              <th className="py-3 px-2 sm:px-3">Objek Kegiatan</th>
+              <th className="py-3 px-2 sm:px-3">Jenis Biaya</th>
+              <th className="py-3 px-2 sm:px-3">Tanggal</th>
+              <th className="py-3 px-2 sm:px-3">Ringkasan Isi Form</th>
+              <th className="py-3 px-2 sm:px-3 text-center w-20">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-slate-700 bg-white">
             {filteredData.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-12 text-center text-slate-400">
+                <td colSpan={8} className="py-12 text-center text-slate-400">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Search className="w-8 h-8 text-slate-300 stroke-[1.5]" />
                     <div className="font-semibold text-slate-600">Tidak ada data kegiatan ditemukan.</div>
@@ -179,70 +263,59 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
             ) : (
               filteredData.map((row) => (
                 <tr key={row.id} className="hover:bg-slate-50/80 transition-colors group">
-                  <td className="py-4 px-3.5 text-center font-semibold text-slate-500">
+                  <td className="py-3 px-2 text-center font-semibold text-slate-500 text-xs">
                     {row.no}
                   </td>
-                  <td className="py-4 px-4 font-extrabold text-slate-900 group-hover:text-[#0072CE] transition-colors">
-                    {row.namaProgram}
+                  <td className="py-3 px-2 sm:px-3 font-extrabold text-slate-900 group-hover:text-[#0072CE] transition-colors text-xs" title={row.namaProgram}>
+                    <div className="line-clamp-2">{row.namaProgram}</div>
                   </td>
-                  <td className="py-4 px-4 font-medium text-slate-700">
-                    {row.subjekKegiatan}
+                  <td className="py-3 px-2 sm:px-3 font-medium text-slate-700 text-xs" title={row.subjekKegiatan}>
+                    <div className="line-clamp-2">{row.subjekKegiatan}</div>
                   </td>
-                  <td className="py-4 px-4">
+                  <td className="py-3 px-2 sm:px-3 font-medium text-slate-700 text-xs" title={row.objekKegiatan || "-"}>
+                    <div className="line-clamp-2">{row.objekKegiatan || "-"}</div>
+                  </td>
+                  <td className="py-3 px-2 sm:px-3">
                     <span
-                      className={`inline-block px-3 py-1 rounded-lg text-xs ${getJenisBiayaBadge(
+                      className={`inline-block px-2 py-0.5 rounded-md text-[11px] whitespace-nowrap ${getJenisBiayaBadge(
                         row.jenisBiaya
                       )}`}
                     >
                       {row.jenisBiaya}
                     </span>
                   </td>
-                  <td className="py-4 px-4 text-slate-600 font-medium whitespace-nowrap">
-                    <div className="flex items-center gap-1.5">
-                      <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
+                  <td className="py-3 px-2 sm:px-3 text-slate-600 font-medium whitespace-nowrap text-xs">
+                    <div className="flex items-center gap-1 text-[11px]">
+                      <CalendarDays className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       <span>{row.tanggalAwal}</span>
                     </div>
                   </td>
-                  <td className="py-4 px-4 min-w-[250px]">
-                    <div className="bg-slate-50/90 rounded-xl p-2.5 border border-slate-200/80 text-xs space-y-1 shadow-2xs">
-                      <div className="font-extrabold text-slate-900">
-                        {row.namaProgram}
-                      </div>
-                      <div className="text-slate-700 font-medium">
-                        <span className="text-slate-400 font-semibold">Subjek:</span> {row.subjekKegiatan}
-                      </div>
-                      {row.objekKegiatan && (
-                        <div className="text-slate-600 text-[11px]">
-                          <span className="text-slate-400 font-semibold">Objek:</span> {row.objekKegiatan}
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1.5 text-[10px] pt-1.5 border-t border-slate-200/60 text-slate-500 font-bold flex-wrap">
-                        <span className="bg-sky-100/80 text-[#0072CE] px-1.5 py-0.5 rounded border border-sky-200/60">
-                          {row.jenisBiaya}
-                        </span>
-                        <span>•</span>
-                        <span>{row.tanggalAwal}</span>
-                      </div>
+                  <td className="py-3 px-2 sm:px-3 text-xs">
+                    <div
+                      className="inline-flex items-center px-2 py-1 rounded-lg bg-slate-50 border border-slate-200 text-[11px] font-bold text-[#0072CE] shadow-2xs max-w-full"
+                      title={getRingkasanSingkatan(row)}
+                    >
+                      <span className="line-clamp-2 leading-tight">{getRingkasanSingkatan(row)}</span>
                     </div>
                   </td>
-                  <td className="py-4 px-4 text-center">
-                    <div className="flex items-center justify-center gap-2">
+                  <td className="py-3 px-2 sm:px-3 text-center">
+                    <div className="flex items-center justify-center gap-1.5">
                       {/* View Action Icon */}
                       <button
                         onClick={() => onViewItem(row)}
-                        className="w-8 h-8 rounded-xl bg-sky-50 hover:bg-[#0072CE] text-[#0072CE] hover:text-white flex items-center justify-center transition-all shadow-2xs"
+                        className="w-7 h-7 rounded-lg bg-sky-50 hover:bg-[#0072CE] text-[#0072CE] hover:text-white flex items-center justify-center transition-all shadow-2xs"
                         title="Lihat Detail"
                       >
-                        <Eye className="w-4 h-4" />
+                        <Eye className="w-3.5 h-3.5" />
                       </button>
 
                       {/* Delete Action Icon */}
                       <button
                         onClick={() => onDeleteItem(row.id)}
-                        className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-600 text-rose-500 hover:text-white flex items-center justify-center transition-all shadow-2xs"
+                        className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-600 text-rose-500 hover:text-white flex items-center justify-center transition-all shadow-2xs"
                         title="Hapus"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </td>
