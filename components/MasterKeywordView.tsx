@@ -106,7 +106,7 @@ export const MasterKeywordView: React.FC<MasterKeywordViewProps> = ({ initialEdi
         Swal.fire({
           icon: "success",
           title: "Berhasil Menyimpan Data!",
-          text: "Master Keyword baru berhasil tersimpan ke database PostgreSQL.",
+          text: "Master Keyword baru berhasil tersimpan ke database.",
           confirmButtonColor: "#0072CE",
           timer: 2500,
         });
@@ -179,7 +179,7 @@ export const MasterKeywordView: React.FC<MasterKeywordViewProps> = ({ initialEdi
         Swal.fire({
           icon: "success",
           title: "Berhasil Memperbarui Data!",
-          text: "Master Keyword berhasil diperbarui di database PostgreSQL.",
+          text: "Master Keyword berhasil diperbarui di database.",
           confirmButtonColor: "#0072CE",
           timer: 2500,
         });
@@ -266,7 +266,7 @@ export const MasterKeywordView: React.FC<MasterKeywordViewProps> = ({ initialEdi
             </span>
           </div>
           <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
-            Daftar kata terlarang & alasan kategori transaksi (NAC) dari database PostgreSQL.
+            Daftar kata terlarang & alasan kategori transaksi (NAC) dari database.
           </p>
         </div>
 
@@ -331,7 +331,7 @@ export const MasterKeywordView: React.FC<MasterKeywordViewProps> = ({ initialEdi
                 <td colSpan={4} className="py-12 text-center text-slate-400 font-medium">
                   <div className="flex items-center justify-center gap-2">
                     <RefreshCw className="w-5 h-5 animate-spin text-rose-600" />
-                    <span>Memuat master keyword dari database PostgreSQL...</span>
+                    <span>Memuat master keyword dari database...</span>
                   </div>
                 </td>
               </tr>

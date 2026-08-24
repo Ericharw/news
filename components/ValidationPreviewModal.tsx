@@ -96,7 +96,7 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
             <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-5 text-rose-950 space-y-2.5 shadow-xs">
               <div className="flex items-center gap-2 font-black text-sm text-rose-700">
                 <AlertTriangle className="w-5 h-5 shrink-0 stroke-[2.5]" />
-                <span>[ ❌ PENGAJUAN DITOLAK / DITAHAN ]</span>
+                <span>[ PENGAJUAN DITOLAK]</span>
               </div>
 
               <p className="text-xs font-semibold text-rose-900 leading-relaxed">
@@ -123,7 +123,7 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
             <div className="bg-[#ECFDF5] border-2 border-emerald-400 rounded-2xl p-5 text-emerald-950 space-y-2 shadow-xs">
               <div className="flex items-center gap-2 font-black text-sm text-emerald-800">
                 <CheckCircle2 className="w-5 h-5 shrink-0 stroke-[2.5] text-emerald-600" />
-                <span>[ ✅ DATA AMAN ]</span>
+                <span>[ DATA AMAN ]</span>
               </div>
 
               <p className="text-xs font-semibold text-emerald-900 leading-relaxed">

@@ -100,7 +100,7 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
           <input
             type="text"
             required
-            placeholder="Contoh: YENNY CATERING / NADYA CATERING"
+            placeholder="Contoh: Ericha Rizki"
             value={formValues.subjekKegiatan}
             onChange={(e) => setFormValues({ ...formValues, subjekKegiatan: e.target.value })}
             className="w-full px-3.5 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white placeholder:text-slate-400 transition-all text-xs sm:text-sm font-medium"

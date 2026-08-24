@@ -95,7 +95,7 @@ export const MasterJenisBiayaView: React.FC<MasterJenisBiayaViewProps> = ({ init
         Swal.fire({
           icon: "success",
           title: "Berhasil Menyimpan Data!",
-          text: "Master Jenis Biaya baru berhasil tersimpan ke database PostgreSQL.",
+          text: "Master Jenis Biaya baru berhasil tersimpan ke database.",
           confirmButtonColor: "#0072CE",
           timer: 2500,
         });
@@ -165,7 +165,7 @@ export const MasterJenisBiayaView: React.FC<MasterJenisBiayaViewProps> = ({ init
         Swal.fire({
           icon: "success",
           title: "Berhasil Memperbarui Data!",
-          text: "Master Jenis Biaya berhasil diperbarui di database PostgreSQL.",
+          text: "Master Jenis Biaya berhasil diperbarui di database.",
           confirmButtonColor: "#0072CE",
           timer: 2500,
         });
@@ -251,7 +251,7 @@ export const MasterJenisBiayaView: React.FC<MasterJenisBiayaViewProps> = ({ init
             </span>
           </div>
           <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
-            Daftar pengelompokan jenis anggaran & biaya resmi PT PLN (Persero) dari database PostgreSQL.
+            Daftar pengelompokan jenis anggaran & biaya resmi PT PLN (Persero) dari database.
           </p>
         </div>
 
@@ -316,7 +316,7 @@ export const MasterJenisBiayaView: React.FC<MasterJenisBiayaViewProps> = ({ init
                 <td colSpan={4} className="py-12 text-center text-slate-400 font-medium">
                   <div className="flex items-center justify-center gap-2">
                     <RefreshCw className="w-5 h-5 animate-spin text-[#00A3E0]" />
-                    <span>Memuat master jenis biaya dari database PostgreSQL...</span>
+                    <span>Memuat master jenis biaya dari database...</span>
                   </div>
                 </td>
               </tr>

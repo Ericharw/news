@@ -203,7 +203,7 @@ export const JenisBiayaSearchableSelect: React.FC<JenisBiayaSearchableSelectProp
           {/* Footer Info */}
           <div className="px-3 py-1.5 bg-slate-50 border-t border-slate-100 text-[10px] text-slate-400 font-bold flex items-center justify-between">
             <span>{filteredOptions.length} Jenis Biaya Tersedia</span>
-            <span className="text-[#0072CE]">PostgreSQL NEWS Sync</span>
+            <span className="text-[#0072CE]">Database NEWS Sync</span>
           </div>
         </div>
       )}
