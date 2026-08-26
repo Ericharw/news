@@ -30,13 +30,14 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
       if (year && month && day) {
         const formattedDate = `${day}/${month}/${year}`;
         const currentText = formValues.tanggalAwal || "";
-        const extraText = currentText.replace(/^\d{2}\/\d{2}\/\d{4}\s*/, "").trim();
-        const combined = extraText ? `${formattedDate} ${extraText}` : `${formattedDate} Batch 1`;
+        const matchBatch = currentText.match(/batch\s*\d+|gelombang\s*\d+/i);
+        const extraText = matchBatch ? matchBatch[0] : "";
+        const combined = extraText ? `${formattedDate} ${extraText}` : formattedDate;
 
         setFormValues({
           ...formValues,
           tanggalAwal: combined,
-          batch: extraText || "Batch 1"
+          batch: extraText
         });
       }
     }
@@ -142,18 +143,18 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
             <input
               type="text"
               required
-              placeholder="Contoh: 20/08/2026 Batch 1 atau ketik manual..."
-              value={
-                formValues.tanggalAwal && formValues.batch && !formValues.tanggalAwal.includes(formValues.batch) && formValues.batch !== "Batch 1"
-                  ? `${formValues.tanggalAwal} ${formValues.batch}`
-                  : formValues.tanggalAwal || ""
-              }
+              placeholder="Contoh: 20/08/2026 atau Batch 1 atau ketik manual..."
+              value={formValues.tanggalAwal || ""}
               onChange={(e) => {
                 const val = e.target.value;
+                const matchBatch = val.match(/batch\s*\d+|gelombang\s*\d+/i);
+                const extractedBatch = matchBatch
+                  ? matchBatch[0]
+                  : (/batch|gelombang/i.test(val) ? val : "");
                 setFormValues({
                   ...formValues,
                   tanggalAwal: val,
-                  batch: val ? (val.includes("Batch") ? val : `Batch 1`) : "Batch 1"
+                  batch: extractedBatch
                 });
               }}
               className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white placeholder:text-slate-400 transition-all text-xs sm:text-sm font-medium"

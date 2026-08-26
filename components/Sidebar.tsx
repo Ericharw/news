@@ -291,7 +291,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {!sidebarCollapsed ? (
           <div className="flex items-center gap-2 text-slate-600 text-xs font-semibold relative z-10">
             <Zap className="w-4 h-4 fill-[#00A3E0] text-[#00A3E0]" />
-            <span className="text-[11px] text-slate-500">PT PLN (Persero) UPDL Surabaya 2026</span>
+            <span className="text-[11px] text-slate-500">&copy; 2026 PT PLN (Persero) UPDL Surabaya</span>
           </div>
         ) : (
           <div className="flex justify-center text-slate-400">

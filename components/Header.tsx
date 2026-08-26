@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Menu, Bell, User, ChevronDown, Zap, LogOut, Settings, ShieldCheck, UserCheck, RefreshCw } from "lucide-react";
+import { Menu, Bell, User, ChevronDown, Zap, LogOut, Settings, ShieldCheck, UserCheck, RefreshCw, Lock, X, AlertCircle, KeyRound } from "lucide-react";
 import { ActiveMenuType, UserRole } from "@/types/activity";
 import Swal from "sweetalert2";
 
@@ -21,6 +21,74 @@ export const Header: React.FC<HeaderProps> = ({
   setUserRole
 }) => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [adminUsername, setAdminUsername] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+
+  // Change Password State
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [oldPasswordInput, setOldPasswordInput] = useState("");
+  const [newPasswordInput, setNewPasswordInput] = useState("");
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState("");
+  const [changePassError, setChangePassError] = useState("");
+  const [isChangingPass, setIsChangingPass] = useState(false);
+
+  const handleChangePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!oldPasswordInput || !newPasswordInput || !confirmPasswordInput) {
+      setChangePassError("Harap isi semua kolom password.");
+      return;
+    }
+
+    if (newPasswordInput !== confirmPasswordInput) {
+      setChangePassError("Password baru dan konfirmasi password tidak cocok.");
+      return;
+    }
+
+    if (newPasswordInput.length < 4) {
+      setChangePassError("Password baru minimal terdiri dari 4 karakter.");
+      return;
+    }
+
+    setIsChangingPass(true);
+    setChangePassError("");
+
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: "admin",
+          oldPassword: oldPasswordInput,
+          newPassword: newPasswordInput,
+        }),
+      });
+      const json = await res.json();
+
+      if (json.success) {
+        setIsChangePasswordOpen(false);
+        setOldPasswordInput("");
+        setNewPasswordInput("");
+        setConfirmPasswordInput("");
+
+        Swal.fire({
+          icon: "success",
+          title: "Password Berhasil Diperbarui!",
+          text: "Password admin baru Anda telah tersimpan di database PostgreSQL.",
+          confirmButtonColor: "#0072CE",
+          timer: 2500,
+        });
+      } else {
+        setChangePassError(json.error || "Gagal memperbarui password admin.");
+      }
+    } catch (err: unknown) {
+      console.error("Error changing password:", err);
+      setChangePassError((err as Error).message || "Terjadi kesalahan koneksi server.");
+    } finally {
+      setIsChangingPass(false);
+    }
+  };
 
   const getPageTitle = () => {
     if (userRole === "user" || activeMenu === "user-form") {
@@ -38,33 +106,52 @@ export const Header: React.FC<HeaderProps> = ({
         return "Master Keyword Non-Allowable Cost (NAC)";
       case "master-jenis-biaya":
         return "Master Jenis Biaya PLN";
+      case "profile":
+        return "Pengaturan Profil Administrator";
       default:
         return "Data Kegiatan";
     }
   };
 
-  const handleToggleRole = () => {
-    const nextRole = userRole === "admin" ? "user" : "admin";
-    setUserRole(nextRole);
-    setShowProfileDropdown(false);
+  const handleAdminLoginSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminUsername.trim() || !adminPassword.trim()) {
+      setLoginError("Harap isi username dan password.");
+      return;
+    }
 
-    Swal.fire({
-      icon: "info",
-      title: `Beralih ke Mode ${nextRole === "admin" ? "Admin SDM" : "Pegawai PLN"}`,
-      text: nextRole === "admin"
-        ? "Anda memiliki akses penuh ke Master Data & Manajemen Kegiatan."
-        : "Anda dalam mode Pegawai untuk menginput form kegiatan diklat.",
-      confirmButtonColor: "#0072CE",
-      timer: 2000,
-    });
+    if (adminUsername.trim().toLowerCase() === "admin" && adminPassword === "admin") {
+      setUserRole("admin");
+      setIsLoginModalOpen(false);
+      setAdminUsername("");
+      setAdminPassword("");
+      setLoginError("");
+
+      Swal.fire({
+        icon: "success",
+        title: "Login Admin Berhasil!",
+        text: "Selamat datang kembali, Administrator SDM & Diklat PT PLN.",
+        confirmButtonColor: "#0072CE",
+        timer: 2500,
+      });
+    } else {
+      setLoginError("Username atau password salah. (Petunjuk: admin / admin)");
+    }
+  };
+
+  const handleToggleRole = () => {
+    if (typeof window !== "undefined") {
+      window.location.href = "/user-form/login";
+    }
   };
 
   const handleLogout = () => {
     setShowProfileDropdown(false);
+    setUserRole("user");
     Swal.fire({
       icon: "success",
       title: "Logout Berhasil!",
-      text: "Anda telah keluar dari sistem PT PLN (Persero).",
+      text: "Anda telah keluar dari mode Admin PT PLN (Persero).",
       confirmButtonColor: "#0072CE",
       timer: 2000,
     });
@@ -109,66 +196,58 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white animate-pulse" />
         </button>
 
-        {/* Profile Dropdown Container */}
+        {/* Profile / Admin Login Container */}
         <div className="relative border-l border-slate-200 pl-3 sm:pl-5">
-          <button
-            onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-            className="flex items-center gap-3 p-1.5 rounded-2xl hover:bg-slate-100/80 transition-all text-left group cursor-pointer"
-          >
-            <div className={`w-10 h-10 rounded-xl text-white flex items-center justify-center font-bold text-sm shadow-sm ring-2 transition-all ${
-              userRole === "admin"
-                ? "bg-gradient-to-tr from-[#0072CE] to-[#00A3E0] ring-[#00A3E0]/30 group-hover:ring-[#0072CE]/50"
-                : "bg-gradient-to-tr from-emerald-600 to-teal-500 ring-emerald-400/30 group-hover:ring-emerald-500/50"
-            }`}>
-              <User className="w-5 h-5" />
-            </div>
-            <div className="hidden sm:block">
-              <div className="text-xs font-extrabold text-slate-900 leading-tight flex items-center gap-1">
-                <span>{userRole === "admin" ? "Admin PLN" : "Pegawai PLN"}</span>
+          {userRole === "user" ? (
+            <button
+              onClick={handleToggleRole}
+              className="flex items-center gap-2 px-4 py-2 bg-[#0072CE] hover:bg-[#005bb5] text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md transition-all cursor-pointer border border-[#00A3E0]/30"
+              title="Klik untuk Login sebagai Admin SDM"
+            >
+              <ShieldCheck className="w-4 h-4 text-[#FFC72C]" />
+              <span>Login Admin</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+              className="flex items-center gap-3 p-1.5 rounded-2xl hover:bg-slate-100/80 transition-all text-left group cursor-pointer"
+            >
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#0072CE] to-[#00A3E0] text-white flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-[#00A3E0]/30 group-hover:ring-[#0072CE]/50">
+                <User className="w-5 h-5" />
               </div>
-              <div className="text-[11px] font-medium text-slate-500">
-                {userRole === "admin" ? "Divisi SDM & Diklat" : "Unit Operasional / Input"}
+              <div className="hidden sm:block">
+                <div className="text-xs font-extrabold text-slate-900 leading-tight flex items-center gap-1">
+                  <span>Admin PLN</span>
+                </div>
+                <div className="text-[11px] font-medium text-slate-500">
+                  Divisi SDM & Diklat
+                </div>
               </div>
-            </div>
-            <ChevronDown className={`w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-transform duration-200 ${showProfileDropdown ? "rotate-180 text-[#0072CE]" : ""}`} />
-          </button>
+              <ChevronDown className={`w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-transform duration-200 ${showProfileDropdown ? "rotate-180 text-[#0072CE]" : ""}`} />
+            </button>
+          )}
 
           {/* Profile Dropdown Menu */}
-          {showProfileDropdown && (
+          {showProfileDropdown && userRole === "admin" && (
             <div className="absolute right-0 mt-3 w-64 bg-white border border-slate-200/90 rounded-2xl shadow-2xl z-50 p-2 border-t-4 border-t-[#0072CE] animate-in fade-in zoom-in-95">
               {/* Header Info */}
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 mb-1">
                 <div className="flex items-center gap-2.5">
-                  <div className={`w-9 h-9 rounded-xl text-white flex items-center justify-center font-bold text-xs ${
-                    userRole === "admin" ? "bg-[#0072CE]" : "bg-emerald-600"
-                  }`}>
-                    {userRole === "admin" ? "AP" : "PLN"}
+                  <div className="w-9 h-9 rounded-xl text-white flex items-center justify-center font-bold text-xs bg-[#0072CE]">
+                    AP
                   </div>
                   <div>
                     <div className="text-xs font-black text-slate-900">
-                      {userRole === "admin" ? "Admin PLN" : "Pegawai PLN"}
+                      Admin PLN
                     </div>
                     <div className="text-[10px] text-slate-500">
-                      {userRole === "admin" ? "admin.diklat@pln.co.id" : "pegawai@pln.co.id"}
+                      admin.diklat@pln.co.id
                     </div>
                   </div>
                 </div>
-                <div className={`mt-2.5 flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border w-fit ${
-                  userRole === "admin"
-                    ? "text-emerald-700 bg-emerald-50 border-emerald-200"
-                    : "text-sky-700 bg-sky-50 border-sky-200"
-                }`}>
-                  {userRole === "admin" ? (
-                    <>
-                      <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                      <span>Administrator SDM</span>
-                    </>
-                  ) : (
-                    <>
-                      <UserCheck className="w-3 h-3 text-sky-600" />
-                      <span>Pegawai / User Input</span>
-                    </>
-                  )}
+                <div className="mt-2.5 flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border w-fit text-emerald-700 bg-emerald-50 border-emerald-200">
+                  <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                  <span>Administrator SDM</span>
                 </div>
               </div>
 
@@ -177,19 +256,15 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   onClick={() => {
                     setShowProfileDropdown(false);
-                    Swal.fire({
-                      icon: "info",
-                      title: "Pengaturan Profil",
-                      text: `Halaman pengaturan profil ${userRole === "admin" ? "administrator" : "pegawai"} PT PLN.`,
-                      confirmButtonColor: "#0072CE",
-                    });
+                    if (typeof window !== "undefined") {
+                      window.location.href = "/data-kegiatan/profile";
+                    }
                   }}
                   className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 font-semibold transition-all"
                 >
                   <Settings className="w-4 h-4 text-slate-500" />
                   <span>Pengaturan Profil</span>
                 </button>
-
 
                 <div className="border-t border-slate-100 my-1" />
 
@@ -206,7 +281,197 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
       </div>
+
+      {/* ADMIN LOGIN MODAL */}
+      {isLoginModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-100 transform scale-100 transition-all">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#0072CE] to-[#00A3E0] text-white flex items-center justify-center font-bold text-sm shadow-md">
+                  <Lock className="w-5 h-5 text-[#FFC72C]" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-extrabold text-[#0072CE] uppercase tracking-wider">
+                    Portal Keamanan PLN
+                  </span>
+                  <h3 className="text-base font-black text-slate-900 tracking-tight">
+                    Login Admin SDM
+                  </h3>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsLoginModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-2 hover:bg-slate-100 rounded-xl transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Login Form */}
+            <form onSubmit={handleAdminLoginSubmit} className="mt-5 space-y-4 text-xs sm:text-sm">
+              {loginError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 font-bold rounded-xl text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{loginError}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block font-bold text-slate-800 mb-1.5">
+                  Username Admin <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative flex items-center">
+                  <User className="w-4 h-4 text-slate-400 absolute left-3.5" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="Masukkan username (contoh: admin)"
+                    value={adminUsername}
+                    onChange={(e) => setAdminUsername(e.target.value)}
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-800 mb-1.5">
+                  Password <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative flex items-center">
+                  <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5" />
+                  <input
+                    type="password"
+                    required
+                    placeholder="Masukkan password (contoh: admin)"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsLoginModalOpen(false)}
+                  className="px-4 py-2.5 border border-slate-200 text-slate-700 font-bold rounded-xl text-xs sm:text-sm hover:bg-slate-100 transition-all"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-[#0072CE] hover:bg-[#005bb5] text-white font-extrabold rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer border border-[#00A3E0]/30"
+                >
+                  <ShieldCheck className="w-4 h-4 text-[#FFC72C]" />
+                  <span>Login Sekarang</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* UBAH PASSWORD ADMIN MODAL */}
+      {isChangePasswordOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-100 transform scale-100 transition-all">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-bold text-sm shadow-md">
+                  <KeyRound className="w-5 h-5 text-amber-100" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-extrabold text-amber-600 uppercase tracking-wider">
+                    Keamanan Akun PLN
+                  </span>
+                  <h3 className="text-base font-black text-slate-900 tracking-tight">
+                    Ubah Password Admin
+                  </h3>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsChangePasswordOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-2 hover:bg-slate-100 rounded-xl transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Change Password Form */}
+            <form onSubmit={handleChangePasswordSubmit} className="mt-5 space-y-4 text-xs sm:text-sm">
+              {changePassError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 font-bold rounded-xl text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{changePassError}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block font-bold text-slate-800 mb-1.5">
+                  Password Lama <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Masukkan password lama"
+                  value={oldPasswordInput}
+                  onChange={(e) => setOldPasswordInput(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-800 mb-1.5">
+                  Password Baru <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Masukkan password baru (min 4 karakter)"
+                  value={newPasswordInput}
+                  onChange={(e) => setNewPasswordInput(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-800 mb-1.5">
+                  Konfirmasi Password Baru <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Ketik ulang password baru"
+                  value={confirmPasswordInput}
+                  onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsChangePasswordOpen(false)}
+                  className="px-4 py-2.5 border border-slate-200 text-slate-700 font-bold rounded-xl text-xs sm:text-sm hover:bg-slate-100 transition-all"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isChangingPass}
+                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer border border-amber-400/30 disabled:opacity-50"
+                >
+                  <ShieldCheck className="w-4 h-4 text-amber-100" />
+                  <span>{isChangingPass ? "Menyimpan DB..." : "Simpan Password Baru"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </header>
   );
 };
-

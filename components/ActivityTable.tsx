@@ -1,6 +1,4 @@
-"use client";
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Search, Filter, ChevronDown, Eye, Trash2, CalendarDays, PlusCircle, FileSpreadsheet } from "lucide-react";
 import * as XLSX from "xlsx";
 import { ActivityItem } from "@/types/activity";
@@ -35,6 +33,18 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
   onDeleteItem,
   onNavigateToAdd
 }) => {
+  const itemsPerPage = 10;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterJenisBiaya, setCurrentPage]);
+
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredData.slice(start, start + itemsPerPage);
+  }, [filteredData, currentPage]);
+
   const [filterOptions, setFilterOptions] = useState<string[]>([
     "all",
     "Perjalanan Dinas",
@@ -128,7 +138,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
 
     // 2. Keyword fallback logic
     const trimmed = rawTrimmed.toUpperCase();
-    if (trimmed.includes("SARJAR") || trimmed.includes("SARANA")) return "SARJAR";
+    if (trimmed.includes("SARJAR") || trimmed.includes("SARANA")) return "SARANA";
     if (trimmed.includes("AMORTISASI") || trimmed.includes("AMOR")) return "AMOR";
     if (trimmed.includes("PAJAK") || trimmed.includes("RETRIBUSI")) return "PAJAK";
     if (trimmed.includes("IURAN")) return "IURAN";
@@ -175,10 +185,55 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
 
   const handleExportExcel = () => {
     const dataToExport = filteredData.map((item, idx) => {
-      const isRed = item.statusNac === "TERDETEKSI_NAC" || Boolean(item.catatanNac);
-      const statusNacText = isRed
-        ? `TERDETEKSI NAC (MERAH)${item.catatanNac ? ` - Penyebab: ${item.catatanNac}` : ""}`
-        : "AMAN (HIJAU)";
+      let redNoteText = "";
+      let greyNoteText = "";
+
+      if (item.catatanNac) {
+        if (item.catatanNac.includes("|")) {
+          const parts = item.catatanNac.split("|");
+          redNoteText = parts[0].replace(/^\[Merah\]\s*/i, "").trim();
+          greyNoteText = parts[1].replace(/^\[Grey Area\]\s*/i, "").trim();
+        } else {
+          const clauses = item.catatanNac.split(";").map((c) => c.trim()).filter(Boolean);
+          const redClauses: string[] = [];
+          const greyClauses: string[] = [];
+
+          const isGreyKeyword = (txt: string) => {
+            const lower = txt.toLowerCase();
+            return (
+              lower.includes("grey") ||
+              lower.includes("sponsor") ||
+              lower.includes("sponsorship") ||
+              lower.includes("honorarium") ||
+              lower.includes("entertainment") ||
+              lower.includes("incentive") ||
+              lower.includes("komisi") ||
+              lower.includes("asuransi direksi") ||
+              lower.includes("bahan bakar") ||
+              lower.includes("swakelola")
+            );
+          };
+
+          for (const clause of clauses) {
+            if (isGreyKeyword(clause)) {
+              greyClauses.push(clause);
+            } else {
+              redClauses.push(clause);
+            }
+          }
+
+          if (redClauses.length > 0) redNoteText = redClauses.join("; ");
+          if (greyClauses.length > 0) greyNoteText = greyClauses.join("; ");
+          if (redClauses.length === 0 && greyClauses.length === 0) {
+            if (item.statusNac === "GREY_AREA") greyNoteText = item.catatanNac;
+            else redNoteText = item.catatanNac;
+          }
+        }
+      }
+
+      const isRed = item.statusNac === "TERDETEKSI_NAC" || Boolean(redNoteText);
+      const isGrey = item.statusNac === "GREY_AREA" || Boolean(greyNoteText);
+      const isSafe = !isRed && !isGrey;
 
       return {
         "No": idx + 1,
@@ -188,14 +243,16 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
         "Jenis Biaya": item.jenisBiaya,
         "Tanggal": formatTanggal2Digit(item.tanggalAwal),
         "Ringkasan Isi Form": getRingkasanSingkatan(item),
-        "Status NAC": statusNacText,
+        "Keyword NAC": isRed ? redNoteText || "Terdeteksi NAC" : "",
+        "Aman": isSafe ? "Aman" : "",
+        "grey area": isGrey ? greyNoteText || "Grey Area" : "",
       };
     });
 
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Data Kegiatan");
-    XLSX.writeFile(workbook, `Data_Kegiatan_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(workbook, `Data_Kegiatan_PLN_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
 
@@ -333,7 +390,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-slate-700 bg-white">
-            {filteredData.length === 0 ? (
+            {paginatedData.length === 0 ? (
               <tr>
                 <td colSpan={9} className="py-12 text-center text-slate-400">
                   <div className="flex flex-col items-center justify-center gap-2">
@@ -344,13 +401,14 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                 </td>
               </tr>
             ) : (
-              filteredData.map((row) => {
+              paginatedData.map((row, idx) => {
+                const rowNum = (currentPage - 1) * itemsPerPage + idx + 1;
                 const isRed = row.statusNac === "TERDETEKSI_NAC" || Boolean(row.catatanNac && row.statusNac !== "GREY_AREA");
                 const isGrey = row.statusNac === "GREY_AREA" || Boolean(row.catatanNac && row.catatanNac.toLowerCase().includes("grey"));
                 return (
                   <tr key={row.id} className={`transition-colors group ${isRed ? "bg-rose-50/30 hover:bg-rose-50/60" : isGrey ? "bg-slate-100/40 hover:bg-slate-100/70" : "hover:bg-slate-50/80"}`}>
                     <td className="py-3 px-2 text-center font-semibold text-slate-500 text-xs">
-                      {row.no}
+                      {rowNum}
                     </td>
                     <td className="py-3 px-2 sm:px-3 font-extrabold text-slate-900 group-hover:text-[#0072CE] transition-colors text-xs" title={row.namaProgram}>
                       <div className="line-clamp-2">{row.namaProgram}</div>
@@ -449,7 +507,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
       {/* Table Pagination Footer */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-6 text-xs text-slate-500">
         <div className="font-semibold text-slate-600">
-          Menampilkan <span className="text-slate-900 font-bold">1 - {filteredData.length}</span> dari <span className="text-slate-900 font-bold">{filteredData.length}</span> data kegiatan
+          Menampilkan <span className="text-slate-900 font-bold">{filteredData.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} - {Math.min(currentPage * itemsPerPage, filteredData.length)}</span> dari <span className="text-slate-900 font-bold">{filteredData.length}</span> data kegiatan
         </div>
 
         <div className="flex items-center gap-1.5">
@@ -460,22 +518,31 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
           >
             &lt;
           </button>
-          {[1, 2, 3].map((page) => (
-            <button
-              key={page}
-              onClick={() => setCurrentPage(page)}
-              className={`w-8 h-8 rounded-xl font-extrabold flex items-center justify-center transition-all ${currentPage === page
-                  ? "bg-[#0072CE] text-white shadow-xs"
-                  : "border border-slate-200 text-slate-700 hover:bg-slate-100"
-                }`}
-            >
-              {page}
-            </button>
-          ))}
-          <span className="px-1 text-slate-400">...</span>
+          {Array.from({ length: totalPages }, (_, i) => i + 1)
+            .filter((page) => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1)
+            .map((page, idx, arr) => {
+              const prev = arr[idx - 1];
+              const showEllipsis = prev && page - prev > 1;
+              return (
+                <React.Fragment key={page}>
+                  {showEllipsis && <span className="px-1 text-slate-400">...</span>}
+                  <button
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-8 h-8 rounded-xl font-extrabold flex items-center justify-center transition-all ${
+                      currentPage === page
+                        ? "bg-[#0072CE] text-white shadow-xs"
+                        : "border border-slate-200 text-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                </React.Fragment>
+              );
+            })}
           <button
-            onClick={() => setCurrentPage((p) => Math.min(3, p + 1))}
-            className="w-8 h-8 rounded-xl border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 font-bold transition-all"
+            disabled={currentPage === totalPages || totalPages === 0}
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            className="w-8 h-8 rounded-xl border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 disabled:opacity-40 font-bold transition-all"
           >
             &gt;
           </button>

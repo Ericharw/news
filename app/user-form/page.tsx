@@ -1,5 +1,5 @@
 import Home from "../page";
 
 export default function UserFormPage() {
-  return <Home />;
+  return <Home initialRole="user" initialMenu="user-form" />;
 }

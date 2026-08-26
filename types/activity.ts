@@ -60,6 +60,7 @@ export type ActiveMenuType =
   | "master-keyword"
   | "master-jenis-biaya"
   | "master-grey-area"
-  | "user-form";
+  | "user-form"
+  | "profile";
 
 

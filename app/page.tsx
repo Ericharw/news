@@ -16,14 +16,43 @@ import { MasterProgramView } from "@/components/MasterProgramView";
 import { MasterKeywordView } from "@/components/MasterKeywordView";
 import { MasterJenisBiayaView } from "@/components/MasterJenisBiayaView";
 import { MasterGreyAreaView } from "@/components/MasterGreyAreaView";
+import { ProfileSettingsView } from "@/components/ProfileSettingsView";
 import { ViewDetailModal } from "@/components/ViewDetailModal";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { ValidationPreviewModal } from "@/components/ValidationPreviewModal";
 
-export default function Home() {
-  // Navigation & Role State
-  const [userRole, setUserRole] = useState<UserRole>("admin");
-  const [activeMenu, setActiveMenu] = useState<ActiveMenuType>("data-kegiatan");
+interface HomeProps {
+  initialRole?: UserRole;
+  initialMenu?: ActiveMenuType;
+}
+
+export default function Home({ initialRole, initialMenu }: HomeProps) {
+  // Navigation & Role State initialized from props & URL to prevent flash on refresh
+  const [userRole, setUserRole] = useState<UserRole>(() => {
+    if (initialRole) return initialRole;
+    if (typeof window !== "undefined") {
+      const p = window.location.pathname;
+      if (p === "/user-form" || p === "/") return "user";
+      if (p.startsWith("/data-kegiatan") || p.startsWith("/master-")) return "admin";
+    }
+    return "user";
+  });
+
+  const [activeMenu, setActiveMenu] = useState<ActiveMenuType>(() => {
+    if (initialMenu) return initialMenu;
+    if (typeof window !== "undefined") {
+      const p = window.location.pathname;
+      if (p === "/user-form" || p === "/") return "user-form";
+      if (p === "/tambah-kegiatan") return "tambah-kegiatan";
+      if (p === "/data-kegiatan/profile") return "profile";
+      if (p.includes("master-program")) return "master-program";
+      if (p.includes("master-keyword")) return "master-keyword";
+      if (p.includes("master-jenis-biaya")) return "master-jenis-biaya";
+      if (p.includes("master-grey-area")) return "master-grey-area";
+    }
+    return "user-form";
+  });
+
   const [isKegiatanOpen, setIsKegiatanOpen] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -84,6 +113,7 @@ export default function Home() {
       else if (menu === "master-program") path = "/master-program";
       else if (menu === "master-keyword") path = "/master-keyword";
       else if (menu === "master-jenis-biaya") path = "/master-jenis-biaya";
+      else if (menu === "profile") path = "/data-kegiatan/profile";
 
       if (window.location.pathname !== path) {
         window.history.pushState(null, "", path);
@@ -97,9 +127,14 @@ export default function Home() {
     const syncUrlMenu = () => {
       if (typeof window !== "undefined") {
         const path = window.location.pathname;
-        if (path === "/user-form") {
+        if (path === "/user-form" || path === "/") {
           setActiveMenu("user-form");
           setUserRole("user");
+          if (path === "/") {
+            window.history.replaceState(null, "", "/user-form");
+          }
+        } else if (path === "/data-kegiatan/profile") {
+          setActiveMenu("profile");
         } else if (path === "/tambah-kegiatan") {
           setActiveMenu("tambah-kegiatan");
         } else if (path === "/master-program" || path === "/master-program-edit") {
@@ -110,10 +145,9 @@ export default function Home() {
           setActiveMenu("master-jenis-biaya");
         } else if (path === "/master-grey-area" || path === "/master-grey-area-edit") {
           setActiveMenu("master-grey-area");
-        } else if (path === "/data-kegiatan" || path === "/") {
+        } else if (path === "/data-kegiatan") {
           setActiveMenu("data-kegiatan");
         }
-
       }
     };
 
@@ -353,6 +387,8 @@ export default function Home() {
             <MasterJenisBiayaView />
           ) : activeMenu === "master-grey-area" ? (
             <MasterGreyAreaView />
+          ) : activeMenu === "profile" ? (
+            <ProfileSettingsView />
           ) : activeMenu === "tambah-kegiatan" ? (
 
             /* HALAMAN KHUSUS TAMBAH KEGIATAN */
