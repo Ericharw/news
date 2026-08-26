@@ -25,8 +25,63 @@ const formatTanggal2Digit = (tanggal: string) => {
 export const ViewDetailModal: React.FC<ViewDetailModalProps> = ({ item, onClose }) => {
   if (!item) return null;
 
-  const isRed = item.statusNac === "TERDETEKSI_NAC" || Boolean(item.catatanNac && item.statusNac !== "GREY_AREA");
-  const isGrey = item.statusNac === "GREY_AREA" || Boolean(item.catatanNac && item.catatanNac.toLowerCase().includes("grey"));
+  let redNoteText = "";
+  let greyNoteText = "";
+
+  if (item.catatanNac) {
+    if (item.catatanNac.includes("|")) {
+      const parts = item.catatanNac.split("|");
+      redNoteText = parts[0].replace(/^\[Merah\]\s*/i, "").trim();
+      greyNoteText = parts[1].replace(/^\[Grey Area\]\s*/i, "").trim();
+    } else {
+      const clauses = item.catatanNac.split(";").map((c) => c.trim()).filter(Boolean);
+      const redClauses: string[] = [];
+      const greyClauses: string[] = [];
+
+      const isGreyKeyword = (txt: string) => {
+        const lower = txt.toLowerCase();
+        return (
+          lower.includes("grey") ||
+          lower.includes("sponsor") ||
+          lower.includes("sponsorship") ||
+          lower.includes("honorarium") ||
+          lower.includes("entertainment") ||
+          lower.includes("incentive") ||
+          lower.includes("komisi") ||
+          lower.includes("asuransi direksi") ||
+          lower.includes("bahan bakar") ||
+          lower.includes("swakelola")
+        );
+      };
+
+      for (const clause of clauses) {
+        if (isGreyKeyword(clause)) {
+          const cleanClause = clause.replace(/^Kata\s+/i, "Transaksi ");
+          greyClauses.push(cleanClause);
+        } else {
+          redClauses.push(clause);
+        }
+      }
+
+      if (redClauses.length > 0) {
+        redNoteText = redClauses.join("; ");
+      }
+      if (greyClauses.length > 0) {
+        greyNoteText = greyClauses.join("; ");
+      }
+      if (redClauses.length === 0 && greyClauses.length === 0) {
+        if (item.statusNac === "GREY_AREA") {
+          greyNoteText = item.catatanNac;
+        } else {
+          redNoteText = item.catatanNac;
+        }
+      }
+    }
+  }
+
+  const hasRedNotes = Boolean(redNoteText) || (item.statusNac === "TERDETEKSI_NAC" && !greyNoteText);
+  const hasGreyNotes = Boolean(greyNoteText) || item.statusNac === "GREY_AREA";
+
   const rawInput = (item.tanggalAwal || "").trim();
   const formattedDate = formatTanggal2Digit(rawInput);
 
@@ -68,9 +123,9 @@ export const ViewDetailModal: React.FC<ViewDetailModalProps> = ({ item, onClose 
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-      <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-100 transform scale-100 transition-all">
+      <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 sm:p-7 shadow-2xl border border-slate-100 transform scale-100 transition-all">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100 sticky top-0 bg-white z-10">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-sky-50 text-[#0072CE] flex items-center justify-center font-bold">
               <FileText className="w-4 h-4" />
@@ -90,54 +145,51 @@ export const ViewDetailModal: React.FC<ViewDetailModalProps> = ({ item, onClose 
 
         {/* Content Body */}
         <div className="mt-5 space-y-4 text-xs sm:text-sm">
-          {/* Status Banner (Hijau / Grey / Merah) */}
-          <div className={`p-4 rounded-2xl border ${
-            isRed
-              ? "bg-rose-50 border-rose-300 text-rose-950"
-              : isGrey
-              ? "bg-slate-100 border-slate-300 text-slate-900"
-              : "bg-emerald-50 border-emerald-300 text-emerald-950"
-          }`}>
-            <div className="flex items-center gap-2 font-black text-xs sm:text-sm mb-1">
-              {isRed ? (
-                <>
+          {/* Status Banner Container */}
+          <div className="space-y-3">
+            {hasRedNotes && (
+              <div className="p-4 rounded-2xl border bg-rose-50 border-rose-300 text-rose-950">
+                <div className="flex items-center gap-2 font-black text-xs sm:text-sm mb-1">
                   <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                   <span className="text-rose-700">STATUS: TERDETEKSI NAC (MERAH)</span>
-                </>
-              ) : isGrey ? (
-                <>
+                </div>
+                <div className="mt-2 text-xs bg-white/90 p-3 rounded-xl border border-rose-200 space-y-1">
+                  <div className="font-extrabold text-rose-800 uppercase text-[10px] tracking-wider">
+                    Penyebab Merah / Temuan NAC:
+                  </div>
+                  <div className="font-bold text-rose-900 leading-relaxed">
+                    {redNoteText || item.catatanNac || "Terdeteksi indikasi kata kunci Non-Allowable Cost."}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {hasGreyNotes && (
+              <div className="p-4 rounded-2xl border bg-slate-100 border-slate-300 text-slate-900">
+                <div className="flex items-center gap-2 font-black text-xs sm:text-sm mb-1">
                   <HelpCircle className="w-4 h-4 text-slate-700 shrink-0" />
                   <span className="text-slate-800">STATUS: GREY AREA (ABU-ABU)</span>
-                </>
-              ) : (
-                <>
+                </div>
+                <div className="mt-2 text-xs bg-white/90 p-3 rounded-xl border border-slate-200 space-y-1">
+                  <div className="font-extrabold text-slate-700 uppercase text-[10px] tracking-wider">
+                    Penyebab Grey Area:
+                  </div>
+                  <div className="font-bold text-slate-800 leading-relaxed">
+                    {greyNoteText || item.catatanNac || "Terdeteksi transaksi Grey Area sesuai master database."}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!hasRedNotes && !hasGreyNotes && (
+              <div className="p-4 rounded-2xl border bg-emerald-50 border-emerald-300 text-emerald-950">
+                <div className="flex items-center gap-2 font-black text-xs sm:text-sm mb-1">
                   <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span className="text-emerald-800">STATUS: AMAN (HIJAU)</span>
-                </>
-              )}
-            </div>
-
-            {isRed ? (
-              <div className="mt-2 text-xs bg-white/90 p-3 rounded-xl border border-rose-200 space-y-1">
-                <div className="font-extrabold text-rose-800 uppercase text-[10px] tracking-wider">
-                  Penyebab Merah / Temuan NAC:
                 </div>
-                <div className="font-bold text-rose-900 leading-relaxed">
-                  {item.catatanNac || "Terdeteksi indikasi kata kunci Non-Allowable Cost."}
+                <div className="text-xs text-emerald-800 font-medium">
+                  Tidak ada temuan Non-Allowable Cost maupun Grey Area pada data kegiatan ini.
                 </div>
-              </div>
-            ) : isGrey ? (
-              <div className="mt-2 text-xs bg-white/90 p-3 rounded-xl border border-slate-200 space-y-1">
-                <div className="font-extrabold text-slate-700 uppercase text-[10px] tracking-wider">
-                  Penyebab Grey Area:
-                </div>
-                <div className="font-bold text-slate-800 leading-relaxed">
-                  {item.catatanNac || "Terdeteksi transaksi Grey Area sesuai master database."}
-                </div>
-              </div>
-            ) : (
-              <div className="text-xs text-emerald-800 font-medium">
-                Tidak ada temuan Non-Allowable Cost maupun Grey Area pada data kegiatan ini.
               </div>
             )}
           </div>

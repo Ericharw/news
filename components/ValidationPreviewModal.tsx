@@ -103,20 +103,6 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
               : {formatTanggal2Digit(formValues.tanggalAwal || "20/08/2026")}
             </span>
           </div>
-
-          {detectedGreyAreas.length > 0 && (
-            <div className="grid grid-cols-12 gap-2 pt-2 border-t border-slate-200/60">
-              <span className="col-span-4 font-bold text-slate-500 uppercase text-[11px]">Informasi Grey Area</span>
-              <div className="col-span-8 font-bold text-slate-800 bg-slate-100 p-2 rounded-xl border border-slate-200 space-y-1 text-xs">
-                {detectedGreyAreas.map((g, idx) => (
-                  <div key={idx} className="leading-tight">
-                    <span className="font-extrabold text-slate-900">: {g.keyword}</span>
-                    {g.ringkasan && <span className="text-slate-600 font-medium block text-[11px] mt-0.5">Ketentuan: {g.ringkasan}</span>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Dynamic Decision Status Box */}

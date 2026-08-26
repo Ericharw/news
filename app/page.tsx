@@ -149,11 +149,16 @@ export default function Home() {
         const greyAreas = json.detectedGreyAreas || [];
         const statusVal: "AMAN" | "TERDETEKSI_NAC" | "GREY_AREA" = json.statusVal || (keywords.length > 0 ? "TERDETEKSI_NAC" : (greyAreas.length > 0 ? "GREY_AREA" : "AMAN"));
 
+        const nacNotes = keywords.map((k: { keyword: string; field: string; category: string }) => `[Merah] Kata "${k.keyword}" pada ${k.field} (${k.category})`).join("; ");
+        const greyNotes = greyAreas.map((g: { keyword: string; field: string; category: string; ringkasan?: string }) => `[Grey Area] Transaksi "${g.keyword}" pada ${g.field}${g.ringkasan ? `: ${g.ringkasan}` : ""}`).join("; ");
+
         let catatanVal = "";
-        if (statusVal === "TERDETEKSI_NAC") {
-          catatanVal = keywords.map((k: { keyword: string; field: string; category: string }) => `Kata "${k.keyword}" pada ${k.field} (${k.category})`).join("; ");
-        } else if (statusVal === "GREY_AREA") {
-          catatanVal = greyAreas.map((g: { keyword: string; field: string; category: string; ringkasan?: string }) => `Grey Area "${g.keyword}" pada ${g.field}${g.ringkasan ? `: ${g.ringkasan}` : ""}`).join("; ");
+        if (keywords.length > 0 && greyAreas.length > 0) {
+          catatanVal = `${nacNotes} | ${greyNotes}`;
+        } else if (keywords.length > 0) {
+          catatanVal = nacNotes;
+        } else if (greyAreas.length > 0) {
+          catatanVal = greyNotes;
         }
 
         setIsSafe(statusVal === "AMAN");
