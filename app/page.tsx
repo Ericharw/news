@@ -45,6 +45,7 @@ export default function Home() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSafe, setIsSafe] = useState(true);
   const [detectedKeywords, setDetectedKeywords] = useState<{ keyword: string; field: string; category: string }[]>([]);
+  const [detectedGreyAreas, setDetectedGreyAreas] = useState<{ keyword: string; field: string; category: string; ringkasan?: string }[]>([]);
 
   // Form State
   const [formValues, setFormValues] = useState<ActivityFormValues>({
@@ -144,15 +145,20 @@ export default function Home() {
       const json = await res.json();
 
       if (json.success) {
-        const isClean = json.isSafe;
         const keywords = json.detectedKeywords || [];
-        const statusVal = isClean ? "AMAN" : "TERDETEKSI_NAC";
-        const catatanVal = isClean
-          ? ""
-          : keywords.map((k: { keyword: string; field: string; category: string }) => `Kata "${k.keyword}" pada ${k.field} (${k.category})`).join("; ");
+        const greyAreas = json.detectedGreyAreas || [];
+        const statusVal: "AMAN" | "TERDETEKSI_NAC" | "GREY_AREA" = json.statusVal || (keywords.length > 0 ? "TERDETEKSI_NAC" : (greyAreas.length > 0 ? "GREY_AREA" : "AMAN"));
 
-        setIsSafe(isClean);
+        let catatanVal = "";
+        if (statusVal === "TERDETEKSI_NAC") {
+          catatanVal = keywords.map((k: { keyword: string; field: string; category: string }) => `Kata "${k.keyword}" pada ${k.field} (${k.category})`).join("; ");
+        } else if (statusVal === "GREY_AREA") {
+          catatanVal = greyAreas.map((g: { keyword: string; field: string; category: string; ringkasan?: string }) => `Grey Area "${g.keyword}" pada ${g.field}${g.ringkasan ? `: ${g.ringkasan}` : ""}`).join("; ");
+        }
+
+        setIsSafe(statusVal === "AMAN");
         setDetectedKeywords(keywords);
+        setDetectedGreyAreas(greyAreas);
         setFormValues((prev) => ({
           ...prev,
           statusNac: statusVal,
@@ -164,7 +170,7 @@ export default function Home() {
         Swal.fire({
           icon: "error",
           title: "Gagal Validasi",
-          text: json.error || "Gagal melakukan validasi keyword NAC.",
+          text: json.error || "Gagal melakukan validasi keyword NAC & Grey Area.",
           confirmButtonColor: "#e11d48",
         });
       }
@@ -393,6 +399,7 @@ export default function Home() {
         isOpen={isPreviewOpen}
         isSafe={isSafe}
         detectedKeywords={detectedKeywords}
+        detectedGreyAreas={detectedGreyAreas}
         formValues={formValues}
         onClose={() => setIsPreviewOpen(false)}
         onConfirmSubmit={handleConfirmSubmit}

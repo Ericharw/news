@@ -9,7 +9,7 @@ export interface ActivityItem {
   objekKegiatan?: string;
   tanggalAwal: string;
   batch: string;
-  statusNac?: "AMAN" | "TERDETEKSI_NAC";
+  statusNac?: "AMAN" | "TERDETEKSI_NAC" | "GREY_AREA";
   catatanNac?: string;
 }
 
@@ -20,7 +20,7 @@ export interface ActivityFormValues {
   objekKegiatan: string;
   tanggalAwal: string;
   batch: string;
-  statusNac?: "AMAN" | "TERDETEKSI_NAC";
+  statusNac?: "AMAN" | "TERDETEKSI_NAC" | "GREY_AREA";
   catatanNac?: string;
 }
 

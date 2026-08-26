@@ -1,19 +1,19 @@
-"use client";
-
 import React from "react";
-import { X, CheckCircle2, AlertTriangle, ArrowLeft, Send, ShieldAlert } from "lucide-react";
+import { X, CheckCircle2, AlertTriangle, ArrowLeft, Send, ShieldAlert, HelpCircle } from "lucide-react";
 import { ActivityFormValues } from "@/types/activity";
 
 interface DetectedKeywordInfo {
   keyword: string;
   field: string;
   category: string;
+  ringkasan?: string;
 }
 
 interface ValidationPreviewModalProps {
   isOpen: boolean;
   isSafe: boolean;
   detectedKeywords: DetectedKeywordInfo[];
+  detectedGreyAreas?: DetectedKeywordInfo[];
   formValues: ActivityFormValues;
   onClose: () => void;
   onConfirmSubmit: () => void;
@@ -36,6 +36,7 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
   isOpen,
   isSafe,
   detectedKeywords,
+  detectedGreyAreas = [],
   formValues,
   onClose,
   onConfirmSubmit,
@@ -43,18 +44,21 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
+  const hasRed = detectedKeywords.length > 0 || formValues.statusNac === "TERDETEKSI_NAC";
+  const hasGrey = detectedGreyAreas.length > 0 || formValues.statusNac === "GREY_AREA";
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/65 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-      <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-100 transform scale-100 transition-all">
+      <div className="bg-white rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-7 shadow-2xl border border-slate-100 transform scale-100 transition-all">
         {/* Modal Top Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100 sticky top-0 bg-white z-10">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#0072CE] to-[#00A3E0] text-white flex items-center justify-center font-bold text-sm shadow-xs">
               <ShieldAlert className="w-5 h-5" />
             </div>
             <div>
               <span className="text-[10px] font-extrabold text-[#0072CE] uppercase tracking-wider">
-                NEWS • NAC Early Warning Validation
+                NEWS • Validation System
               </span>
               <h3 className="text-lg font-black text-slate-900 tracking-tight">
                 RINGKASAN DATA KEGIATAN
@@ -99,11 +103,26 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
               : {formatTanggal2Digit(formValues.tanggalAwal || "20/08/2026")}
             </span>
           </div>
+
+          {detectedGreyAreas.length > 0 && (
+            <div className="grid grid-cols-12 gap-2 pt-2 border-t border-slate-200/60">
+              <span className="col-span-4 font-bold text-slate-500 uppercase text-[11px]">Informasi Grey Area</span>
+              <div className="col-span-8 font-bold text-slate-800 bg-slate-100 p-2 rounded-xl border border-slate-200 space-y-1 text-xs">
+                {detectedGreyAreas.map((g, idx) => (
+                  <div key={idx} className="leading-tight">
+                    <span className="font-extrabold text-slate-900">: {g.keyword}</span>
+                    {g.ringkasan && <span className="text-slate-600 font-medium block text-[11px] mt-0.5">Ketentuan: {g.ringkasan}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
+
         {/* Dynamic Decision Status Box */}
-        <div className="mt-5">
-          {!isSafe ? (
-            /* KONDISI MERAH: TERDETEKSI NAC (Kolom Background Merah Muda) */
+        <div className="mt-5 space-y-4">
+          {hasRed && (
+            /* KONDISI MERAH: TERDETEKSI NAC */
             <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-5 text-rose-950 space-y-2.5 shadow-xs">
               <div className="flex items-center gap-2 font-black text-sm text-rose-700">
                 <AlertTriangle className="w-5 h-5 shrink-0 stroke-[2.5]" />
@@ -129,8 +148,39 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
                 Anda dapat memilih untuk membenahi data atau memilih <strong>TETAP SUBMIT DATA</strong>.
               </p>
             </div>
-          ) : (
-            /* KONDISI HIJAU: AMAN (Kolom Background Hijau Muda) */
+          )}
+
+          {hasGrey && (
+            /* KONDISI GREY: GREY AREA TERDETEKSI */
+            <div className="bg-slate-100 border-2 border-slate-300 rounded-2xl p-5 text-slate-900 space-y-2.5 shadow-xs">
+              <div className="flex items-center gap-2 font-black text-sm text-slate-800">
+                <HelpCircle className="w-5 h-5 shrink-0 stroke-[2.5] text-slate-700" />
+                <span>[ INDIKASI GREY AREA TERDETEKSI - STATUS GREY ]</span>
+              </div>
+
+              <p className="text-xs font-semibold text-slate-800 leading-relaxed">
+                Sistem mendeteksi adanya transaksi <strong>Grey Area</strong> sesuai master database. Data dapat disimpan ke dalam sistem dan akan ditandai dengan catatan alasannya.
+              </p>
+
+              <div className="bg-white/90 p-3 rounded-xl border border-slate-200 space-y-1.5 text-xs">
+                {detectedGreyAreas.map((item, idx) => (
+                  <div key={idx} className="flex items-start gap-1.5 font-extrabold text-slate-800">
+                    <span>•</span>
+                    <span>
+                      Penyebab Grey: Transaksi <span className="underline bg-slate-100 px-1 rounded text-slate-950">&quot;{item.keyword}&quot;</span> pada <strong>{item.field}</strong> <span className="text-slate-600 font-semibold">({item.category}{item.ringkasan ? `: ${item.ringkasan}` : ""})</span>.
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-[11px] font-medium text-slate-600 pt-1">
+                Anda dapat memilih untuk membenahi data atau memilih <strong>TETAP SUBMIT DATA</strong>.
+              </p>
+            </div>
+          )}
+
+          {!hasRed && !hasGrey && (
+            /* KONDISI HIJAU: AMAN */
             <div className="bg-[#ECFDF5] border-2 border-emerald-400 rounded-2xl p-5 text-emerald-950 space-y-2 shadow-xs">
               <div className="flex items-center gap-2 font-black text-sm text-emerald-800">
                 <CheckCircle2 className="w-5 h-5 shrink-0 stroke-[2.5] text-emerald-600" />
@@ -138,14 +188,14 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
               </div>
 
               <p className="text-xs font-semibold text-emerald-900 leading-relaxed">
-                Tidak ditemukan keyword indikasi <strong>Non-Allowable Cost (NAC)</strong>. Data siap untuk disimpan ke dalam sistem dengan badge <strong>HIJAU (AMAN)</strong>.
+                Tidak ditemukan keyword indikasi <strong>Non-Allowable Cost (NAC)</strong> maupun <strong>Grey Area</strong>. Data siap untuk disimpan ke dalam sistem dengan badge <strong>HIJAU (AMAN)</strong>.
               </p>
             </div>
           )}
         </div>
 
         {/* Modal Action Buttons */}
-        <div className="mt-6 flex flex-col sm:flex-row items-center justify-end gap-3 pt-2">
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-end gap-3 pt-4 sticky bottom-0 bg-white pb-1 border-t border-slate-100">
           <button
             onClick={onClose}
             className="w-full sm:w-auto px-4 py-2.5 border border-slate-200 text-slate-700 font-bold rounded-xl text-xs sm:text-sm hover:bg-slate-100 transition-all flex items-center justify-center gap-1.5"
@@ -158,8 +208,10 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
             onClick={onConfirmSubmit}
             disabled={isSubmitting}
             className={`w-full sm:w-auto px-6 py-2.5 font-black rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50 ${
-              !isSafe
+              hasRed
                 ? "bg-rose-600 hover:bg-rose-700 text-white border border-rose-500"
+                : hasGrey
+                ? "bg-slate-800 hover:bg-slate-900 text-white border border-slate-700"
                 : "bg-[#FFC72C] hover:bg-[#F2B81A] text-slate-950 border border-amber-300"
             }`}
           >
@@ -167,14 +219,15 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
             <span>
               {isSubmitting
                 ? "MENYIMPAN DATA..."
-                : !isSafe
+                : hasRed
                 ? "TETAP SUBMIT DATA (STATUS MERAH)"
+                : hasGrey
+                ? "TETAP SUBMIT DATA (STATUS GREY)"
                 : "SUBMIT DATA SEKARANG"}
             </span>
           </button>
         </div>
       </div>
     </div>
-
   );
 };

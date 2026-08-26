@@ -25,8 +25,9 @@ function matchesKeyword(text: string, rawKeyword: string): boolean {
 
   const escaped = literalCore.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-  // For short keywords (3 characters or less, e.g. "rd", "5s"), MUST match as a standalone word using \b
-  if (literalCore.length <= 3) {
+  // If rawKeyword contains asterisks with spaces or is short (<= 5 chars, e.g. "* spons *", "* rd *"), match standalone word
+  const isExactWord = cleanKw.includes("* ") || cleanKw.includes(" *") || literalCore.length <= 5;
+  if (isExactWord) {
     try {
       const reg = new RegExp(`\\b${escaped}\\b`, "i");
       return reg.test(cleanText);
@@ -60,6 +61,13 @@ export async function POST(request: Request) {
     }
 
     let masterKeywords = FALLBACK_KEYWORDS;
+    let masterGreyAreas = [
+      { nama_transaksi: "Sponsor", ringkasan: "Perlu klarifikasi peruntukan sponsor" },
+      { nama_transaksi: "Sponsorship", ringkasan: "Perlu klarifikasi peruntukan sponsorship" },
+      { nama_transaksi: "Entertainment", ringkasan: "Perlu bukti pendukung kegiatan" },
+      { nama_transaksi: "Honorarium", ringkasan: "Perlu persetujuan khusus" },
+      { nama_transaksi: "Incentive", ringkasan: "Ketentuan klaim insentif" },
+    ];
 
     try {
       const keywordRes = await pool.query("SELECT * FROM master_keyword;");
@@ -70,14 +78,26 @@ export async function POST(request: Request) {
       console.warn("PostgreSQL query warning, using local master_keyword fallback:", dbErr);
     }
 
+    try {
+      const greyRes = await pool.query("SELECT * FROM master_grey_area;");
+      if (greyRes.rows && greyRes.rows.length > 0) {
+        masterGreyAreas = greyRes.rows;
+      }
+    } catch (dbErr) {
+      console.warn("PostgreSQL query warning, using local master_grey_area fallback:", dbErr);
+    }
+
     const detectedKeywords: { keyword: string; field: string; category: string }[] = [];
+    const detectedGreyAreas: { keyword: string; field: string; category: string; ringkasan?: string }[] = [];
 
     const textToScan = [
       { text: objekKegiatan || "", field: "Objek Kegiatan" },
       { text: subjekKegiatan || "", field: "Subjek Kegiatan" },
       { text: namaProgram || "", field: "Nama Program" },
+      { text: jenisBiaya || "", field: "Jenis Biaya" },
     ];
 
+    // Scan for NAC Keywords (Merah)
     for (const item of textToScan) {
       if (!item.text) continue;
 
@@ -102,12 +122,46 @@ export async function POST(request: Request) {
       }
     }
 
-    const isSafe = detectedKeywords.length === 0;
+    // Scan for Grey Area (Grey) using NAMA TRANSAKSI from master_grey_area
+    for (const item of textToScan) {
+      if (!item.text) continue;
+
+      for (const gaObj of masterGreyAreas) {
+        const gaNama = gaObj.nama_transaksi || (gaObj as any).namaTransaksi || "";
+        const gaRingkasan = gaObj.ringkasan || "";
+        if (!gaNama) continue;
+
+        if (matchesKeyword(item.text, gaNama) || item.text.toLowerCase().includes(gaNama.toLowerCase())) {
+          const alreadyAdded = detectedGreyAreas.some(
+            (d) => d.keyword.toLowerCase() === gaNama.toLowerCase() && d.field === item.field
+          );
+          if (!alreadyAdded) {
+            detectedGreyAreas.push({
+              keyword: gaNama,
+              field: item.field,
+              category: (gaObj as any).status || "Grey Area",
+              ringkasan: gaRingkasan,
+            });
+          }
+        }
+      }
+    }
+
+    let statusVal: "AMAN" | "TERDETEKSI_NAC" | "GREY_AREA" = "AMAN";
+    if (detectedKeywords.length > 0) {
+      statusVal = "TERDETEKSI_NAC";
+    } else if (detectedGreyAreas.length > 0) {
+      statusVal = "GREY_AREA";
+    }
+
+    const isSafe = statusVal === "AMAN";
 
     return NextResponse.json({
       success: true,
       isSafe,
+      statusVal,
       detectedKeywords,
+      detectedGreyAreas,
       inputData: {
         namaProgram,
         subjekKegiatan,

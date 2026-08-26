@@ -106,9 +106,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
   };
 
   const getSingkatanSubjek = (subjek: string) => {
-    const words = subjek.replace(/[^a-zA-Z0-9\s]/g, "").split(/\s+/).filter(Boolean);
-    if (words.length <= 2) return subjek;
-    return words.map((w) => w[0].toUpperCase()).join("");
+    return subjek || "";
   };
 
   const getSingkatanJenisBiaya = (jenis: string) => {
@@ -163,7 +161,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
 
   const getRingkasanSingkatan = (item: ActivityItem) => {
     const progCode = getSingkatanProgram(item.namaProgram);
-    const subjekCode = getSingkatanSubjek(item.subjekKegiatan);
+    const subjekCode = item.subjekKegiatan || "";
     const objekText = item.objekKegiatan || "";
     const jbCode = getSingkatanJenisBiaya(item.jenisBiaya);
     const tglShort = formatTanggal2Digit(item.tanggalAwal);
@@ -172,7 +170,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
       ? `${progCode}/${subjekCode}/${objekText}/${jbCode}/${tglShort}`
       : `${progCode}/${subjekCode}/${jbCode}/${tglShort}`;
 
-    return fullStr.slice(0, 50);
+    return fullStr;
   };
 
   const handleExportExcel = () => {
@@ -189,8 +187,8 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
         "Objek Kegiatan": item.objekKegiatan || "-",
         "Jenis Biaya": item.jenisBiaya,
         "Tanggal": formatTanggal2Digit(item.tanggalAwal),
-        "Status NAC": statusNacText,
         "Ringkasan Isi Form": getRingkasanSingkatan(item),
+        "Status NAC": statusNacText,
       };
     });
 
@@ -329,8 +327,8 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
               <th className="py-3 px-2 sm:px-3">Objek Kegiatan</th>
               <th className="py-3 px-2 sm:px-3">Jenis Biaya</th>
               <th className="py-3 px-2 sm:px-3">Tanggal</th>
-              <th className="py-3 px-2 sm:px-3">Status NAC</th>
               <th className="py-3 px-2 sm:px-3">Ringkasan Isi Form</th>
+              <th className="py-3 px-2 sm:px-3">Status NAC</th>
               <th className="py-3 px-2 sm:px-3 text-center w-20">Aksi</th>
             </tr>
           </thead>
@@ -347,9 +345,10 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
               </tr>
             ) : (
               filteredData.map((row) => {
-                const isRed = row.statusNac === "TERDETEKSI_NAC" || Boolean(row.catatanNac);
+                const isRed = row.statusNac === "TERDETEKSI_NAC" || Boolean(row.catatanNac && row.statusNac !== "GREY_AREA");
+                const isGrey = row.statusNac === "GREY_AREA" || Boolean(row.catatanNac && row.catatanNac.toLowerCase().includes("grey"));
                 return (
-                  <tr key={row.id} className={`transition-colors group ${isRed ? "bg-rose-50/30 hover:bg-rose-50/60" : "hover:bg-slate-50/80"}`}>
+                  <tr key={row.id} className={`transition-colors group ${isRed ? "bg-rose-50/30 hover:bg-rose-50/60" : isGrey ? "bg-slate-100/40 hover:bg-slate-100/70" : "hover:bg-slate-50/80"}`}>
                     <td className="py-3 px-2 text-center font-semibold text-slate-500 text-xs">
                       {row.no}
                     </td>
@@ -378,6 +377,15 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                       </div>
                     </td>
 
+                    <td className="py-3 px-2 sm:px-3 text-xs">
+                      <div
+                        className="inline-flex items-center px-2 py-1 rounded-lg bg-slate-50 border border-slate-200 text-[11px] font-bold text-[#0072CE] shadow-2xs max-w-full"
+                        title={getRingkasanSingkatan(row)}
+                      >
+                        <span className="line-clamp-2 leading-tight">{getRingkasanSingkatan(row)}</span>
+                      </div>
+                    </td>
+
                     {/* Status NAC Column */}
                     <td className="py-3 px-2 sm:px-3 text-xs">
                       {isRed ? (
@@ -391,19 +399,22 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                             </div>
                           )}
                         </div>
+                      ) : isGrey ? (
+                        <div className="space-y-0.5">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-800 font-black text-[10px] border border-slate-300">
+                            ● GREY AREA (ABU-ABU)
+                          </span>
+                          {row.catatanNac && (
+                            <div className="text-[10px] font-bold text-slate-600 max-w-xs leading-tight" title={row.catatanNac}>
+                              Penyebab: {row.catatanNac}
+                            </div>
+                          )}
+                        </div>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-black text-[10px] border border-emerald-300">
                           ● AMAN (HIJAU)
                         </span>
                       )}
-                    </td>
-                    <td className="py-3 px-2 sm:px-3 text-xs">
-                      <div
-                        className="inline-flex items-center px-2 py-1 rounded-lg bg-slate-50 border border-slate-200 text-[11px] font-bold text-[#0072CE] shadow-2xs max-w-full"
-                        title={getRingkasanSingkatan(row)}
-                      >
-                        <span className="line-clamp-2 leading-tight">{getRingkasanSingkatan(row)}</span>
-                      </div>
                     </td>
                     <td className="py-3 px-2 sm:px-3 text-center">
                       <div className="flex items-center justify-center gap-1.5">

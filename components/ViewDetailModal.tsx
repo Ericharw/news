@@ -2,7 +2,7 @@
 
 import React from "react";
 
-import { X, Calendar, Tag, FileText, CheckCircle2, AlertTriangle, ShieldCheck } from "lucide-react";
+import { X, Calendar, Tag, FileText, CheckCircle2, AlertTriangle, ShieldCheck, HelpCircle } from "lucide-react";
 import { ActivityItem } from "@/types/activity";
 
 interface ViewDetailModalProps {
@@ -25,8 +25,32 @@ const formatTanggal2Digit = (tanggal: string) => {
 export const ViewDetailModal: React.FC<ViewDetailModalProps> = ({ item, onClose }) => {
   if (!item) return null;
 
-  const isRed = item.statusNac === "TERDETEKSI_NAC" || Boolean(item.catatanNac);
-  const formattedDate = formatTanggal2Digit(item.tanggalAwal);
+  const isRed = item.statusNac === "TERDETEKSI_NAC" || Boolean(item.catatanNac && item.statusNac !== "GREY_AREA");
+  const isGrey = item.statusNac === "GREY_AREA" || Boolean(item.catatanNac && item.catatanNac.toLowerCase().includes("grey"));
+  const rawInput = (item.tanggalAwal || "").trim();
+  const formattedDate = formatTanggal2Digit(rawInput);
+
+  const hasDate = /\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{2,4}|\d{4}-\d{2}-\d{2}|\d{1,2}\s+(Jan|Feb|Mar|Apr|Mei|Jun|Jul|Agu|Sep|Okt|Nov|Des)/i.test(rawInput);
+  const hasBatchKeyword = /batch|gelombang/i.test(rawInput) || (Boolean(item.batch) && item.batch !== "Batch 1" && !rawInput.toLowerCase().includes(item.batch.toLowerCase()));
+
+  let labelText = "Tanggal & Batch";
+  let displayValue = formattedDate;
+
+  if (hasDate && hasBatchKeyword) {
+    labelText = "Tanggal & Batch";
+    displayValue = rawInput.toLowerCase().includes(item.batch?.toLowerCase() || "")
+      ? formattedDate
+      : `${formattedDate} (${item.batch})`;
+  } else if (hasDate) {
+    labelText = "Tanggal";
+    displayValue = formattedDate;
+  } else if (hasBatchKeyword) {
+    labelText = "Batch";
+    displayValue = rawInput || item.batch || "Batch 1";
+  } else {
+    labelText = "Tanggal";
+    displayValue = formattedDate || rawInput;
+  }
 
   const getJenisBiayaBadge = (jenis: string) => {
     switch (jenis) {
@@ -66,10 +90,12 @@ export const ViewDetailModal: React.FC<ViewDetailModalProps> = ({ item, onClose 
 
         {/* Content Body */}
         <div className="mt-5 space-y-4 text-xs sm:text-sm">
-          {/* Status NAC Banner (Hijau / Merah) */}
+          {/* Status Banner (Hijau / Grey / Merah) */}
           <div className={`p-4 rounded-2xl border ${
             isRed
               ? "bg-rose-50 border-rose-300 text-rose-950"
+              : isGrey
+              ? "bg-slate-100 border-slate-300 text-slate-900"
               : "bg-emerald-50 border-emerald-300 text-emerald-950"
           }`}>
             <div className="flex items-center gap-2 font-black text-xs sm:text-sm mb-1">
@@ -77,6 +103,11 @@ export const ViewDetailModal: React.FC<ViewDetailModalProps> = ({ item, onClose 
                 <>
                   <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                   <span className="text-rose-700">STATUS: TERDETEKSI NAC (MERAH)</span>
+                </>
+              ) : isGrey ? (
+                <>
+                  <HelpCircle className="w-4 h-4 text-slate-700 shrink-0" />
+                  <span className="text-slate-800">STATUS: GREY AREA (ABU-ABU)</span>
                 </>
               ) : (
                 <>
@@ -95,9 +126,18 @@ export const ViewDetailModal: React.FC<ViewDetailModalProps> = ({ item, onClose 
                   {item.catatanNac || "Terdeteksi indikasi kata kunci Non-Allowable Cost."}
                 </div>
               </div>
+            ) : isGrey ? (
+              <div className="mt-2 text-xs bg-white/90 p-3 rounded-xl border border-slate-200 space-y-1">
+                <div className="font-extrabold text-slate-700 uppercase text-[10px] tracking-wider">
+                  Penyebab Grey Area:
+                </div>
+                <div className="font-bold text-slate-800 leading-relaxed">
+                  {item.catatanNac || "Terdeteksi transaksi Grey Area sesuai master database."}
+                </div>
+              </div>
             ) : (
               <div className="text-xs text-emerald-800 font-medium">
-                Tidak ada temuan Non-Allowable Cost pada data kegiatan ini.
+                Tidak ada temuan Non-Allowable Cost maupun Grey Area pada data kegiatan ini.
               </div>
             )}
           </div>
@@ -143,12 +183,11 @@ export const ViewDetailModal: React.FC<ViewDetailModalProps> = ({ item, onClose 
           <div className="pt-2">
             <div className="bg-sky-50/60 p-3.5 rounded-xl border border-sky-100">
               <span className="text-[10px] font-bold text-sky-600 uppercase tracking-wider flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5" /> Tanggal & Batch
+                <Calendar className="w-3.5 h-3.5" /> {labelText}
               </span>
               <div className="text-slate-900 font-extrabold text-sm mt-0.5">
-                {formattedDate} {item.batch ? `(${item.batch})` : ""}
+                {displayValue}
               </div>
-
             </div>
           </div>
         </div>
