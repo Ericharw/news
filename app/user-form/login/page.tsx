@@ -3,13 +3,14 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Lock, User, KeyRound, ShieldCheck, ArrowLeft, Zap, AlertCircle, RefreshCw } from "lucide-react";
+import { Lock, User, KeyRound, ShieldCheck, ArrowLeft, Zap, AlertCircle, RefreshCw, Eye, EyeOff } from "lucide-react";
 import Swal from "sweetalert2";
 
 export default function AdminLoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -147,13 +148,21 @@ export default function AdminLoginPage() {
               <div className="relative flex items-center">
                 <KeyRound className="w-4.5 h-4.5 text-slate-400 absolute left-3.5" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   placeholder="Masukkan password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all placeholder:text-slate-400"
+                  className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all placeholder:text-slate-400"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 text-slate-400 hover:text-[#0072CE] transition-colors p-1 cursor-pointer"
+                  title={showPassword ? "Sembunyikan password" : "Lihat password"}
+                >
+                  {showPassword ? <Eye className="w-4 h-4 text-[#0072CE]" /> : <EyeOff className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 

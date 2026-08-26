@@ -33,9 +33,9 @@ export default function Home({ initialRole, initialMenu }: HomeProps) {
     if (typeof window !== "undefined") {
       const p = window.location.pathname;
       if (p === "/user-form" || p === "/") return "user";
-      if (p.startsWith("/data-kegiatan") || p.startsWith("/master-")) return "admin";
+      if (p.startsWith("/data-kegiatan") || p.startsWith("/master-") || p === "/tambah-kegiatan") return "admin";
     }
-    return "user";
+    return "admin";
   });
 
   const [activeMenu, setActiveMenu] = useState<ActiveMenuType>(() => {
@@ -50,7 +50,7 @@ export default function Home({ initialRole, initialMenu }: HomeProps) {
       if (p.includes("master-jenis-biaya")) return "master-jenis-biaya";
       if (p.includes("master-grey-area")) return "master-grey-area";
     }
-    return "user-form";
+    return "data-kegiatan";
   });
 
   const [isKegiatanOpen, setIsKegiatanOpen] = useState(true);
@@ -76,13 +76,21 @@ export default function Home({ initialRole, initialMenu }: HomeProps) {
   const [detectedKeywords, setDetectedKeywords] = useState<{ keyword: string; field: string; category: string }[]>([]);
   const [detectedGreyAreas, setDetectedGreyAreas] = useState<{ keyword: string; field: string; category: string; ringkasan?: string }[]>([]);
 
+  const getTodayDateFormatted = () => {
+    const d = new Date();
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = String(d.getFullYear()).slice(-2);
+    return `${day}/${month}/${year}`;
+  };
+
   // Form State
   const [formValues, setFormValues] = useState<ActivityFormValues>({
     namaProgram: "",
     subjekKegiatan: "",
     jenisBiaya: "",
     objekKegiatan: "",
-    tanggalAwal: "20/08/2026",
+    tanggalAwal: getTodayDateFormatted(),
     batch: ""
   });
 
@@ -280,7 +288,7 @@ export default function Home({ initialRole, initialMenu }: HomeProps) {
       subjekKegiatan: "",
       jenisBiaya: "",
       objekKegiatan: "",
-      tanggalAwal: "20/08/2026",
+      tanggalAwal: getTodayDateFormatted(),
       batch: ""
     });
   };

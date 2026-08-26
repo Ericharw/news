@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Menu, Bell, User, ChevronDown, Zap, LogOut, Settings, ShieldCheck, UserCheck, RefreshCw, Lock, X, AlertCircle, KeyRound } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Menu, Bell, User, ChevronDown, Zap, LogOut, Settings, ShieldCheck, UserCheck, RefreshCw, Lock, X, AlertCircle, KeyRound, Eye, EyeOff } from "lucide-react";
 import { ActiveMenuType, UserRole } from "@/types/activity";
 import Swal from "sweetalert2";
 
@@ -21,16 +21,33 @@ export const Header: React.FC<HeaderProps> = ({
   setUserRole
 }) => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [adminUsername, setAdminUsername] = useState("");
-  const [adminPassword, setAdminPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
+
+  const [profileName, setProfileName] = useState("Admin PLN");
+  const [profileEmail, setProfileEmail] = useState("admin.diklat@pln.co.id");
+  const [profileJabatan, setProfileJabatan] = useState("Administrator SDM");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("pln_admin_profile");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.namaAdmin) setProfileName(parsed.namaAdmin);
+          if (parsed.emailAdmin) setProfileEmail(parsed.emailAdmin);
+          if (parsed.jabatanAdmin) setProfileJabatan(parsed.jabatanAdmin);
+        } catch (e) {}
+      }
+    }
+  }, []);
 
   // Change Password State
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [oldPasswordInput, setOldPasswordInput] = useState("");
   const [newPasswordInput, setNewPasswordInput] = useState("");
   const [confirmPasswordInput, setConfirmPasswordInput] = useState("");
+  const [showHeaderOldPass, setShowHeaderOldPass] = useState(false);
+  const [showHeaderNewPass, setShowHeaderNewPass] = useState(false);
+  const [showHeaderConfirmPass, setShowHeaderConfirmPass] = useState(false);
   const [changePassError, setChangePassError] = useState("");
   const [isChangingPass, setIsChangingPass] = useState(false);
 
@@ -113,32 +130,6 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
-  const handleAdminLoginSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!adminUsername.trim() || !adminPassword.trim()) {
-      setLoginError("Harap isi username dan password.");
-      return;
-    }
-
-    if (adminUsername.trim().toLowerCase() === "admin" && adminPassword === "admin") {
-      setUserRole("admin");
-      setIsLoginModalOpen(false);
-      setAdminUsername("");
-      setAdminPassword("");
-      setLoginError("");
-
-      Swal.fire({
-        icon: "success",
-        title: "Login Admin Berhasil!",
-        text: "Selamat datang kembali, Administrator SDM & Diklat PT PLN.",
-        confirmButtonColor: "#0072CE",
-        timer: 2500,
-      });
-    } else {
-      setLoginError("Username atau password salah. (Petunjuk: admin / admin)");
-    }
-  };
-
   const handleToggleRole = () => {
     if (typeof window !== "undefined") {
       window.location.href = "/user-form/login";
@@ -217,10 +208,10 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
               <div className="hidden sm:block">
                 <div className="text-xs font-extrabold text-slate-900 leading-tight flex items-center gap-1">
-                  <span>Admin PLN</span>
+                  <span>{profileName}</span>
                 </div>
                 <div className="text-[11px] font-medium text-slate-500">
-                  Divisi SDM & Diklat
+                  {profileJabatan || "Administrator SDM"}
                 </div>
               </div>
               <ChevronDown className={`w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-transform duration-200 ${showProfileDropdown ? "rotate-180 text-[#0072CE]" : ""}`} />
@@ -237,17 +228,17 @@ export const Header: React.FC<HeaderProps> = ({
                     AP
                   </div>
                   <div>
-                    <div className="text-xs font-black text-slate-900">
-                      Admin PLN
+                    <div className="text-xs font-black text-slate-900 truncate max-w-[150px]">
+                      {profileName}
                     </div>
-                    <div className="text-[10px] text-slate-500">
-                      admin.diklat@pln.co.id
+                    <div className="text-[10px] text-slate-500 truncate max-w-[150px]">
+                      {profileEmail}
                     </div>
                   </div>
                 </div>
                 <div className="mt-2.5 flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border w-fit text-emerald-700 bg-emerald-50 border-emerald-200">
                   <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                  <span>Administrator SDM</span>
+                  <span>{profileJabatan}</span>
                 </div>
               </div>
 
@@ -281,97 +272,6 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
       </div>
-
-      {/* ADMIN LOGIN MODAL */}
-      {isLoginModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-100 transform scale-100 transition-all">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#0072CE] to-[#00A3E0] text-white flex items-center justify-center font-bold text-sm shadow-md">
-                  <Lock className="w-5 h-5 text-[#FFC72C]" />
-                </div>
-                <div>
-                  <span className="text-[10px] font-extrabold text-[#0072CE] uppercase tracking-wider">
-                    Portal Keamanan PLN
-                  </span>
-                  <h3 className="text-base font-black text-slate-900 tracking-tight">
-                    Login Admin SDM
-                  </h3>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsLoginModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700 p-2 hover:bg-slate-100 rounded-xl transition-all"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Login Form */}
-            <form onSubmit={handleAdminLoginSubmit} className="mt-5 space-y-4 text-xs sm:text-sm">
-              {loginError && (
-                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 font-bold rounded-xl text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-                  <span>{loginError}</span>
-                </div>
-              )}
-
-              <div>
-                <label className="block font-bold text-slate-800 mb-1.5">
-                  Username Admin <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative flex items-center">
-                  <User className="w-4 h-4 text-slate-400 absolute left-3.5" />
-                  <input
-                    type="text"
-                    required
-                    placeholder="Masukkan username (contoh: admin)"
-                    value={adminUsername}
-                    onChange={(e) => setAdminUsername(e.target.value)}
-                    className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-800 mb-1.5">
-                  Password <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative flex items-center">
-                  <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5" />
-                  <input
-                    type="password"
-                    required
-                    placeholder="Masukkan password (contoh: admin)"
-                    value={adminPassword}
-                    onChange={(e) => setAdminPassword(e.target.value)}
-                    className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsLoginModalOpen(false)}
-                  className="px-4 py-2.5 border border-slate-200 text-slate-700 font-bold rounded-xl text-xs sm:text-sm hover:bg-slate-100 transition-all"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 bg-[#0072CE] hover:bg-[#005bb5] text-white font-extrabold rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer border border-[#00A3E0]/30"
-                >
-                  <ShieldCheck className="w-4 h-4 text-[#FFC72C]" />
-                  <span>Login Sekarang</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* UBAH PASSWORD ADMIN MODAL */}
       {isChangePasswordOpen && (
@@ -413,42 +313,72 @@ export const Header: React.FC<HeaderProps> = ({
                 <label className="block font-bold text-slate-800 mb-1.5">
                   Password Lama <span className="text-rose-500">*</span>
                 </label>
-                <input
-                  type="password"
-                  required
-                  placeholder="Masukkan password lama"
-                  value={oldPasswordInput}
-                  onChange={(e) => setOldPasswordInput(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all"
-                />
+                <div className="relative flex items-center">
+                  <input
+                    type={showHeaderOldPass ? "text" : "password"}
+                    required
+                    placeholder="Masukkan password lama"
+                    value={oldPasswordInput}
+                    onChange={(e) => setOldPasswordInput(e.target.value)}
+                    className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowHeaderOldPass(!showHeaderOldPass)}
+                    className="absolute right-3 text-slate-400 hover:text-[#0072CE] transition-colors p-1 cursor-pointer"
+                    title={showHeaderOldPass ? "Sembunyikan password" : "Lihat password"}
+                  >
+                    {showHeaderOldPass ? <Eye className="w-4 h-4 text-[#0072CE]" /> : <EyeOff className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <div>
                 <label className="block font-bold text-slate-800 mb-1.5">
                   Password Baru <span className="text-rose-500">*</span>
                 </label>
-                <input
-                  type="password"
-                  required
-                  placeholder="Masukkan password baru (min 4 karakter)"
-                  value={newPasswordInput}
-                  onChange={(e) => setNewPasswordInput(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all"
-                />
+                <div className="relative flex items-center">
+                  <input
+                    type={showHeaderNewPass ? "text" : "password"}
+                    required
+                    placeholder="Masukkan password baru (min 4 karakter)"
+                    value={newPasswordInput}
+                    onChange={(e) => setNewPasswordInput(e.target.value)}
+                    className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowHeaderNewPass(!showHeaderNewPass)}
+                    className="absolute right-3 text-slate-400 hover:text-[#0072CE] transition-colors p-1 cursor-pointer"
+                    title={showHeaderNewPass ? "Sembunyikan password" : "Lihat password"}
+                  >
+                    {showHeaderNewPass ? <Eye className="w-4 h-4 text-[#0072CE]" /> : <EyeOff className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <div>
                 <label className="block font-bold text-slate-800 mb-1.5">
                   Konfirmasi Password Baru <span className="text-rose-500">*</span>
                 </label>
-                <input
-                  type="password"
-                  required
-                  placeholder="Ketik ulang password baru"
-                  value={confirmPasswordInput}
-                  onChange={(e) => setConfirmPasswordInput(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all"
-                />
+                <div className="relative flex items-center">
+                  <input
+                    type={showHeaderConfirmPass ? "text" : "password"}
+                    required
+                    placeholder="Ketik ulang password baru"
+                    value={confirmPasswordInput}
+                    onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                    className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowHeaderConfirmPass(!showHeaderConfirmPass)}
+                    className="absolute right-3 text-slate-400 hover:text-[#0072CE] transition-colors p-1 cursor-pointer"
+                    title={showHeaderConfirmPass ? "Sembunyikan password" : "Lihat password"}
+                  >
+                    {showHeaderConfirmPass ? <Eye className="w-4 h-4 text-[#0072CE]" /> : <EyeOff className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <div className="pt-2 flex items-center justify-end gap-3">

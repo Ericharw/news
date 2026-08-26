@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { User, ShieldCheck, KeyRound, AlertCircle, CheckCircle2, Lock, Mail, Building2, Calendar, RefreshCw, Save } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { User, ShieldCheck, KeyRound, AlertCircle, CheckCircle2, Lock, Mail, Building2, Calendar, RefreshCw, Save, Eye, EyeOff } from "lucide-react";
 import Swal from "sweetalert2";
 
 export const ProfileSettingsView: React.FC = () => {
@@ -12,10 +12,31 @@ export const ProfileSettingsView: React.FC = () => {
   const [jabatanAdmin, setJabatanAdmin] = useState("Administrator SDM & Diklat");
   const [isProfileSaving, setIsProfileSaving] = useState(false);
 
+  // Load saved profile on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("pln_admin_profile");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.namaAdmin) setNamaAdmin(parsed.namaAdmin);
+          if (parsed.emailAdmin) setEmailAdmin(parsed.emailAdmin);
+          if (parsed.unitAdmin) setUnitAdmin(parsed.unitAdmin);
+          if (parsed.jabatanAdmin) setJabatanAdmin(parsed.jabatanAdmin);
+        } catch (e) {
+          console.error("Error parsing saved profile:", e);
+        }
+      }
+    }
+  }, []);
+
   // Password State
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showOldPass, setShowOldPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -32,6 +53,18 @@ export const ProfileSettingsView: React.FC = () => {
     }
 
     setIsProfileSaving(true);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(
+        "pln_admin_profile",
+        JSON.stringify({
+          namaAdmin: namaAdmin.trim(),
+          emailAdmin: emailAdmin.trim(),
+          unitAdmin: unitAdmin.trim(),
+          jabatanAdmin: jabatanAdmin.trim(),
+        })
+      );
+    }
+
     setTimeout(async () => {
       setIsProfileSaving(false);
       await Swal.fire({
@@ -293,13 +326,21 @@ export const ProfileSettingsView: React.FC = () => {
                 <div className="relative flex items-center">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5" />
                   <input
-                    type="password"
+                    type={showOldPass ? "text" : "password"}
                     required
                     placeholder="Masukkan password lama admin"
                     value={oldPassword}
                     onChange={(e) => setOldPassword(e.target.value)}
-                    className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all"
+                    className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowOldPass(!showOldPass)}
+                    className="absolute right-3 text-slate-400 hover:text-[#0072CE] transition-colors p-1 cursor-pointer"
+                    title={showOldPass ? "Sembunyikan password" : "Lihat password"}
+                  >
+                    {showOldPass ? <Eye className="w-4 h-4 text-[#0072CE]" /> : <EyeOff className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
 
@@ -310,13 +351,21 @@ export const ProfileSettingsView: React.FC = () => {
                 <div className="relative flex items-center">
                   <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5" />
                   <input
-                    type="password"
+                    type={showNewPass ? "text" : "password"}
                     required
                     placeholder="Masukkan password baru (minimal 4 karakter)"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all"
+                    className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPass(!showNewPass)}
+                    className="absolute right-3 text-slate-400 hover:text-[#0072CE] transition-colors p-1 cursor-pointer"
+                    title={showNewPass ? "Sembunyikan password" : "Lihat password"}
+                  >
+                    {showNewPass ? <Eye className="w-4 h-4 text-[#0072CE]" /> : <EyeOff className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
 
@@ -327,13 +376,21 @@ export const ProfileSettingsView: React.FC = () => {
                 <div className="relative flex items-center">
                   <CheckCircle2 className="w-4 h-4 text-slate-400 absolute left-3.5" />
                   <input
-                    type="password"
+                    type={showConfirmPass ? "text" : "password"}
                     required
                     placeholder="Ketik ulang password baru Anda"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all"
+                    className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPass(!showConfirmPass)}
+                    className="absolute right-3 text-slate-400 hover:text-[#0072CE] transition-colors p-1 cursor-pointer"
+                    title={showConfirmPass ? "Sembunyikan password" : "Lihat password"}
+                  >
+                    {showConfirmPass ? <Eye className="w-4 h-4 text-[#0072CE]" /> : <EyeOff className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
 
