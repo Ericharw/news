@@ -1,6 +1,8 @@
 ﻿import React, { useState, useEffect } from "react";
 import { X, CheckCircle2, AlertTriangle, ArrowLeft, Send, ShieldAlert, HelpCircle, Copy, Download, Check } from "lucide-react";
 import { ActivityFormValues } from "@/types/activity";
+import Swal from "sweetalert2";
+import { PROGRAM_OPTIONS } from "@/data/programOptions";
 
 interface DetectedKeywordInfo {
   keyword: string;
@@ -16,7 +18,7 @@ interface ValidationPreviewModalProps {
   detectedGreyAreas?: DetectedKeywordInfo[];
   formValues: ActivityFormValues;
   onClose: () => void;
-  onConfirmSubmit: () => void;
+  onConfirmSubmit: () => void | Promise<boolean>;
   isSubmitting?: boolean;
 }
 
@@ -34,14 +36,26 @@ const formatTanggal2Digit = (tanggal: string) => {
 
 const getSingkatanProgram = (namaProgram: string) => {
   if (!namaProgram) return "";
+  const match = PROGRAM_OPTIONS.find(
+    (program) =>
+      program.label.toLowerCase() === namaProgram.toLowerCase() ||
+      program.code.toLowerCase() === namaProgram.toLowerCase() ||
+      namaProgram.includes(`(${program.code})`)
+  );
+  if (match) return match.code;
   const words = namaProgram.replace(/[^a-zA-Z0-9\s]/g, "").split(/\s+/).filter(Boolean);
   if (words.length === 1) return words[0].substring(0, 5).toUpperCase();
   return words.map((w) => w[0].toUpperCase()).join("");
 };
 
-const getSingkatanJenisBiaya = (jenis: string): string => {
+const getSingkatanJenisBiaya = (jenis: string, masterMap: Record<string, string>): string => {
   if (!jenis) return "";
-  const trimmed = jenis.trim().toUpperCase();
+  const rawTrimmed = jenis.trim();
+  const lowerKey = rawTrimmed.toLowerCase();
+  if (masterMap[lowerKey]) return masterMap[lowerKey].toUpperCase();
+  const foundEntry = Object.entries(masterMap).find(([key]) => lowerKey.includes(key) || key.includes(lowerKey));
+  if (foundEntry && foundEntry[1]) return foundEntry[1].toUpperCase();
+  const trimmed = rawTrimmed.toUpperCase();
   if (trimmed.includes("PERJALANAN") || trimmed === "PD" || trimmed.includes("PERDIN")) return "PERDIN";
   if (trimmed.includes("AKOMODASI") || trimmed === "AKM" || trimmed.includes("AKOM")) return "AKOM";
   if (trimmed.includes("KONSUM") || trimmed.includes("KONS")) return "KONS";
@@ -57,11 +71,11 @@ const getSingkatanJenisBiaya = (jenis: string): string => {
   return clean.length > 8 ? clean.substring(0, 6) : clean;
 };
 
-const buildRingkasan = (formValues: ActivityFormValues): string => {
+const buildRingkasan = (formValues: ActivityFormValues, masterMap: Record<string, string>): string => {
   const progCode = getSingkatanProgram(formValues.namaProgram || "");
   const subjek = formValues.subjekKegiatan || "";
   const objek = formValues.objekKegiatan || "";
-  const jbCode = getSingkatanJenisBiaya(formValues.jenisBiaya || "");
+  const jbCode = getSingkatanJenisBiaya(formValues.jenisBiaya || "", masterMap);
   const tgl = formatTanggal2Digit(formValues.tanggalAwal || "");
   return objek
     ? `${progCode}/${subjek}/${objek}/${jbCode}/${tgl}`
@@ -80,6 +94,26 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [masterJenisBiayaMap, setMasterJenisBiayaMap] = useState<Record<string, string>>({});
+  const [showSummary, setShowSummary] = useState(false);
+  const [submittedSummary, setSubmittedSummary] = useState("");
+
+  useEffect(() => {
+    fetch("/api/master/jenis-biaya")
+      .then((response) => response.json())
+      .then((result) => {
+        if (result.success && Array.isArray(result.data)) {
+          const map: Record<string, string> = {};
+          result.data.forEach((item: { nama: string; keterangan?: string; singkatan?: string }) => {
+            if (item.nama && (item.singkatan || item.keterangan)) {
+              map[item.nama.toLowerCase().trim()] = (item.singkatan || item.keterangan || "").trim();
+            }
+          });
+          setMasterJenisBiayaMap(map);
+        }
+      })
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     if (copied) {
@@ -95,11 +129,18 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
     }
   }, [saved]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      setShowSummary(false);
+      setSubmittedSummary("");
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const hasRed = detectedKeywords.length > 0 || formValues.statusNac === "TERDETEKSI_NAC";
   const hasGrey = detectedGreyAreas.length > 0 || formValues.statusNac === "GREY_AREA";
-  const ringkasan = buildRingkasan(formValues);
+  const ringkasan = buildRingkasan(formValues, masterJenisBiayaMap);
 
   const handleCopy = async () => {
     try {
@@ -188,7 +229,7 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
         </div>
 
         {/* RINGKASAN ISI FORM (Singkatan Format) */}
-        <div className="mt-4 bg-gradient-to-r from-[#003B70] to-[#0072CE] rounded-2xl p-4 sm:p-5 border border-[#00A3E0]/30 shadow-md">
+        {showSummary && <div className="mt-4 bg-gradient-to-r from-[#003B70] to-[#0072CE] rounded-2xl p-4 sm:p-5 border border-[#00A3E0]/30 shadow-md">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-[10px] font-extrabold text-[#FFC72C] uppercase tracking-wider flex items-center gap-1.5">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#FFC72C]"></span>
@@ -198,7 +239,7 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
 
           <div className="bg-white/10 rounded-xl px-3 py-2.5 mb-3 border border-white/20">
             <p className="text-white font-black text-sm sm:text-base tracking-wide break-all leading-relaxed select-all">
-              {ringkasan}
+              {submittedSummary || ringkasan}
             </p>
           </div>
 
@@ -232,8 +273,19 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
               {saved ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : <Download className="w-3.5 h-3.5" />}
               <span>{saved ? "Tersimpan!" : "Simpan (.txt)"}</span>
             </button>
+
+            {copied && (
+              <button
+                type="button"
+                onClick={() => setCopied(false)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 shadow-xs transition-all cursor-pointer"
+              >
+                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>OK</span>
+              </button>
+            )}
           </div>
-        </div>
+        </div>}
 
         {/* Dynamic Decision Status Box */}
         <div className="mt-5 space-y-4">
@@ -269,14 +321,14 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
                 <span>[ INDIKASI GREY AREA TERDETEKSI - STATUS GREY ]</span>
               </div>
               <p className="text-xs font-semibold text-slate-800 leading-relaxed">
-                Sistem mendeteksi adanya transaksi <strong>Grey Area</strong> sesuai master database. Data dapat disimpan ke dalam sistem dan akan ditandai dengan catatan alasannya.
+                Sistem mendeteksi adanya transaksi <strong>Grey Area</strong>. Keterangan: {detectedGreyAreas.map((item) => item.ringkasan).filter(Boolean).join("; ") || "Sesuai keterangan pada master Grey Area."} Data dapat disimpan ke dalam sistem dan akan ditandai dengan catatan alasannya.
               </p>
               <div className="bg-white/90 p-3 rounded-xl border border-slate-200 space-y-1.5 text-xs">
                 {detectedGreyAreas.map((item, idx) => (
                   <div key={idx} className="flex items-start gap-1.5 font-extrabold text-slate-800">
                     <span>•</span>
                     <span>
-                      Penyebab Grey: Transaksi <span className="underline bg-slate-100 px-1 rounded text-slate-950">&quot;{item.keyword}&quot;</span> pada <strong>{item.field}</strong> <span className="text-slate-600 font-semibold">({item.category}{item.ringkasan ? `: ${item.ringkasan}` : ""})</span>.
+                      Penyebab: <span className="text-slate-600 font-semibold">[Grey Area]</span> Transaksi <span className="underline bg-slate-100 px-1 rounded text-slate-950">&quot;{item.keyword}&quot;</span> pada <strong>{item.field}</strong>: <span className="text-slate-600 font-semibold">{item.ringkasan || item.category || "Grey Area"}</span>
                     </span>
                   </div>
                 ))}
@@ -311,7 +363,18 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
           </button>
 
           <button
-            onClick={onConfirmSubmit}
+            onClick={async () => {
+              const submitted = await onConfirmSubmit();
+              if (submitted !== false) {
+                await Swal.fire({
+                  icon: "success",
+                  title: "Ringkasan Isi Form",
+                  text: ringkasan,
+                  confirmButtonText: "OK",
+                  confirmButtonColor: "#0072CE",
+                });
+              }
+            }}
             disabled={isSubmitting}
             className={`w-full sm:w-auto px-6 py-2.5 font-black rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50 ${
               hasRed

@@ -12,6 +12,7 @@ interface ActivityFormProps {
   onSubmit: (e: React.FormEvent) => void;
   onReset: () => void;
   isValidating?: boolean;
+  requiredObject?: boolean;
 }
 
 export const ActivityForm: React.FC<ActivityFormProps> = ({
@@ -19,7 +20,8 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
   setFormValues,
   onSubmit,
   onReset,
-  isValidating = false
+  isValidating = false,
+  requiredObject = false
 }) => {
   const datePickerRef = React.useRef<HTMLInputElement>(null);
 
@@ -122,10 +124,11 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
         {/* Objek Kegiatan */}
         <div>
           <label className="block font-bold text-slate-800 mb-1.5">
-            Objek Kegiatan (Judul Diklat)
+            Objek Kegiatan (Judul Diklat) {requiredObject && <span className="text-rose-500">*</span>}
           </label>
           <textarea
             rows={3}
+            required={requiredObject}
             placeholder="Contoh: ENTREPRENEUR-LAUNDRY atau Analisa Vibrasi 1"
             value={formValues.objekKegiatan}
             onChange={(e) => setFormValues({ ...formValues, objekKegiatan: e.target.value })}

@@ -66,7 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {/* PLN Logo badge */}
               <div className="relative p-1.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs flex items-center justify-center shrink-0">
                 <Image
-                  src="/logo_pln.webp"
+                  src="/Logo_PLN.png"
                   alt="PLN Logo"
                   width={38}
                   height={38}
@@ -100,7 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="w-full flex flex-col items-center justify-center">
               <div className="relative p-1.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex items-center justify-center">
                 <Image
-                  src="/logo_pln.webp"
+                  src="/Logo_PLN.png"
                   alt="PLN Logo"
                   width={30}
                   height={30}

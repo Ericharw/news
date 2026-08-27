@@ -58,6 +58,7 @@ export const TambahKegiatanView: React.FC<TambahKegiatanViewProps> = ({
             onSubmit={onSubmit}
             onReset={onReset}
             isValidating={isValidating}
+            requiredObject
           />
         </div>
 

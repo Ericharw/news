@@ -80,11 +80,13 @@ export const JenisBiayaSearchableSelect: React.FC<JenisBiayaSearchableSelectProp
     }
   }, [isOpen]);
 
-  const filteredOptions = options.filter(
-    (opt) =>
-      (opt?.nama || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (opt?.singkatan || "").toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredOptions = options
+    .filter(
+      (opt) =>
+        (opt?.nama || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (opt?.singkatan || "").toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .reverse();
 
   const handleSelect = (opt: JenisBiayaOption) => {
     onChange(opt.nama);

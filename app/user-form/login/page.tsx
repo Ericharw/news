@@ -93,7 +93,7 @@ export default function AdminLoginPage() {
           <div className="text-center space-y-3">
             <div className="inline-flex items-center justify-center p-2 rounded-2xl bg-white border border-slate-200 shadow-xs mb-1">
               <Image
-                src="/logo_pln.webp"
+                src="/Logo_PLN.png"
                 alt="PLN Logo"
                 width={48}
                 height={48}

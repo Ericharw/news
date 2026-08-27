@@ -64,6 +64,8 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
   ]);
   const [masterJenisBiayaMap, setMasterJenisBiayaMap] = useState<Record<string, string>>({});
 
+  const getProgramFilterName = (namaProgram: string) => namaProgram.split("(")[0].trim();
+
   useEffect(() => {
     async function loadMasterJenisBiaya() {
       try {
@@ -96,7 +98,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
   const programListOptions = useMemo(() => {
     const fromOptions = PROGRAM_OPTIONS.map((p) => p.label);
     const fromData = filteredData.map((d) => d.namaProgram).filter(Boolean);
-    return Array.from(new Set([...fromOptions, ...fromData]));
+    return Array.from(new Set([...fromOptions, ...fromData].map(getProgramFilterName)));
   }, [filteredData]);
 
   const parseItemDate = (tanggalStr: string): Date | null => {
@@ -200,7 +202,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
       const matchProgram =
         filterNamaProgram === "all"
           ? true
-          : item.namaProgram.toLowerCase().trim() === filterNamaProgram.toLowerCase().trim();
+          : getProgramFilterName(item.namaProgram).toLowerCase() === filterNamaProgram.toLowerCase().trim();
 
       const matchJenis =
         filterJenisBiaya === "all"
