@@ -163,3 +163,17 @@ export async function POST(request: Request) {
     );
   }
 }
+
+// DELETE /api/activities - Delete ALL activities
+export async function DELETE() {
+  try {
+    await ensureTableExists();
+    await pool.query("TRUNCATE TABLE activities RESTART IDENTITY;");
+    memoryActivities = [];
+    return NextResponse.json({ success: true, message: "Semua data kegiatan berhasil dihapus." });
+  } catch (error: unknown) {
+    console.warn("Database DELETE ALL warning, clearing memory store:", (error as Error).message);
+    memoryActivities = [];
+    return NextResponse.json({ success: true, message: "Semua data kegiatan berhasil dihapus." });
+  }
+}

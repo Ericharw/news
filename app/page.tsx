@@ -309,7 +309,7 @@ export default function Home({ initialRole, initialMenu }: HomeProps) {
         Swal.fire({
           icon: "error",
           title: "Gagal Menghapus Data",
-          text: json.error || "Gagal menghapus data dari.",
+          text: json.error || "Gagal menghapus data dari database.",
           confirmButtonColor: "#e11d48",
         });
       }
@@ -323,6 +323,52 @@ export default function Home({ initialRole, initialMenu }: HomeProps) {
       });
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  // Delete All Action Handler -> DELETE /api/activities
+  const confirmDeleteAll = async () => {
+    const result = await Swal.fire({
+      icon: "warning",
+      title: "Hapus Semua Data Kegiatan?",
+      text: "Apakah Anda yakin ingin menghapus SELURUH data kegiatan? Tindakan ini tidak dapat dibatalkan!",
+      showCancelButton: true,
+      confirmButtonColor: "#e11d48",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Ya, Hapus Semua",
+      cancelButtonText: "Batal",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const res = await fetch("/api/activities", { method: "DELETE" });
+        const json = await res.json();
+        if (json.success) {
+          refetchActivities();
+          Swal.fire({
+            icon: "success",
+            title: "Berhasil Dihapus!",
+            text: "Seluruh data kegiatan telah berhasil dihapus dari database.",
+            confirmButtonColor: "#0072CE",
+            timer: 2000,
+          });
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "Gagal Menghapus",
+            text: json.error || "Gagal menghapus semua data.",
+            confirmButtonColor: "#e11d48",
+          });
+        }
+      } catch (err) {
+        console.error("Error deleting all items:", err);
+        Swal.fire({
+          icon: "error",
+          title: "Gagal Menghapus",
+          text: (err as Error).message || "Terjadi kesalahan koneksi server.",
+          confirmButtonColor: "#e11d48",
+        });
+      }
     }
   };
 
@@ -420,6 +466,7 @@ export default function Home({ initialRole, initialMenu }: HomeProps) {
               setCurrentPage={setCurrentPage}
               onViewItem={(item) => setViewingItem(item)}
               onDeleteItem={(id) => setDeletingId(id)}
+              onDeleteAllItems={confirmDeleteAll}
               onNavigateToAdd={() => setActiveMenu("tambah-kegiatan")}
             />
           )}

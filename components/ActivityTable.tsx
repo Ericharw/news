@@ -16,6 +16,7 @@ interface ActivityTableProps {
   setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
   onViewItem: (item: ActivityItem) => void;
   onDeleteItem?: (id: number) => void;
+  onDeleteAllItems?: () => void;
   onNavigateToAdd?: () => void;
   title?: string;
   subtitle?: string;
@@ -34,6 +35,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
   setCurrentPage,
   onViewItem,
   onDeleteItem,
+  onDeleteAllItems,
   onNavigateToAdd,
   title,
   subtitle,
@@ -615,6 +617,18 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
             >
               <PlusCircle className="w-4 h-4 stroke-[2.5]" />
               <span className="hidden sm:inline">Tambah Kegiatan</span>
+            </button>
+          )}
+
+          {/* Delete All Action Button (Admin Data Kegiatan) */}
+          {onDeleteAllItems && finalFilteredData.length > 0 && (
+            <button
+              onClick={onDeleteAllItems}
+              className="flex items-center gap-2 px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-xs border border-rose-500 shrink-0 cursor-pointer"
+              title="Hapus Seluruh Data Kegiatan"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Hapus Semua Data</span>
             </button>
           )}
         </div>
