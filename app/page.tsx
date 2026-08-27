@@ -1,505 +1,177 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
-
-import { ActivityItem, ActivityFormValues, ActiveMenuType, UserRole } from "@/types/activity";
+import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import { ActivityItem, ActiveMenuType, UserRole } from "@/types/activity";
 import Swal from "sweetalert2";
-
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { Toast } from "@/components/Toast";
 import { ActivityTable } from "@/components/ActivityTable";
 import { TambahKegiatanView } from "@/components/TambahKegiatanView";
-import { UserFormView } from "@/components/UserFormView";
 import { MasterProgramView } from "@/components/MasterProgramView";
 import { MasterKeywordView } from "@/components/MasterKeywordView";
 import { MasterJenisBiayaView } from "@/components/MasterJenisBiayaView";
 import { MasterGreyAreaView } from "@/components/MasterGreyAreaView";
 import { ProfileSettingsView } from "@/components/ProfileSettingsView";
-import { ViewDetailModal } from "@/components/ViewDetailModal";
-import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
-import { ValidationPreviewModal } from "@/components/ValidationPreviewModal";
+import { UserFormView } from "@/components/UserFormView";
+import { LandingPage } from "@/components/LandingPage";
 
 interface HomeProps {
   initialRole?: UserRole;
   initialMenu?: ActiveMenuType;
 }
 
-export default function Home({ initialRole, initialMenu }: HomeProps) {
-  // Navigation & Role State initialized deterministically from props to prevent hydration mismatch
-  const [userRole, setUserRole] = useState<UserRole>(initialRole || "user");
-  const [activeMenu, setActiveMenu] = useState<ActiveMenuType>(initialMenu || "user-form");
-
-  const [isKegiatanOpen, setIsKegiatanOpen] = useState(true);
+function AdminShell({ activeMenu, children }: { activeMenu: ActiveMenuType; children: ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isKegiatanOpen, setIsKegiatanOpen] = useState(true);
+  const navigate = (menu: ActiveMenuType) => {
+    const paths: Partial<Record<ActiveMenuType, string>> = {
+      "data-kegiatan": "/data-kegiatan",
+      "tambah-kegiatan": "/tambah-kegiatan",
+      "master-program": "/master-program",
+      "master-keyword": "/master-keyword",
+      "master-jenis-biaya": "/master-jenis-biaya",
+      "master-grey-area": "/master-grey-area",
+      profile: "/data-kegiatan/profile",
+    };
+    window.location.href = paths[menu] || "/data-kegiatan";
+  };
 
-  // Table Data State
+  return (
+    <div className="min-h-screen flex bg-[#F1F5F9] text-slate-800 font-sans">
+      <Sidebar activeMenu={activeMenu} setActiveMenu={navigate} isKegiatanOpen={isKegiatanOpen} setIsKegiatanOpen={setIsKegiatanOpen} sidebarCollapsed={sidebarCollapsed} userRole="admin" setUserRole={() => undefined} />
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
+        <Header activeMenu={activeMenu} sidebarCollapsed={sidebarCollapsed} setSidebarCollapsed={setSidebarCollapsed} userRole="admin" setUserRole={() => undefined} />
+        <main className="flex-1 p-3 sm:p-6 md:p-8 space-y-6 max-w-7xl w-full mx-auto overflow-x-hidden">{children}</main>
+        <Footer />
+      </div>
+    </div>
+  );
+}
+
+function AdminDataKegiatan() {
   const [dataList, setDataList] = useState<ActivityItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterJenisBiaya, setFilterJenisBiaya] = useState("all");
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-
-  // Modals & Notifications State
-  const [viewingItem, setViewingItem] = useState<ActivityItem | null>(null);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  // Validation Preview Modal State
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [isValidating, setIsValidating] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSafe, setIsSafe] = useState(true);
-  const [detectedKeywords, setDetectedKeywords] = useState<{ keyword: string; field: string; category: string }[]>([]);
-  const [detectedGreyAreas, setDetectedGreyAreas] = useState<{ keyword: string; field: string; category: string; ringkasan?: string }[]>([]);
-
-  const getTodayDateFormatted = () => {
-    const d = new Date();
-    const day = String(d.getDate()).padStart(2, "0");
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const year = String(d.getFullYear()).slice(-2);
-    return `${day}/${month}/${year}`;
-  };
-
-  // Form State
-  const [formValues, setFormValues] = useState<ActivityFormValues>({
-    namaProgram: "",
-    subjekKegiatan: "",
-    jenisBiaya: "",
-    objekKegiatan: "",
-    tanggalAwal: getTodayDateFormatted(),
-    batch: ""
-  });
-
-  // Toast Helper
-  const showNotification = (msg: string) => {
-    setToastMessage(msg);
-  };
-
-  // Fetch live activities from PostgreSQL DB
-  const refetchActivities = async () => {
-    try {
-      const res = await fetch("/api/activities");
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data)) {
-        setDataList(json.data);
-      }
-    } catch (err) {
-      console.error("Error fetching activities from DB:", err);
-    }
-  };
-
-  const handleMenuChange = (menu: ActiveMenuType) => {
-    setActiveMenu(menu);
-    if (typeof window !== "undefined") {
-      let path = "/data-kegiatan";
-      if (menu === "tambah-kegiatan") path = "/tambah-kegiatan";
-      else if (menu === "user-form" || menu === "riwayat-user") path = "/user-form";
-      else if (menu === "master-program") path = "/master-program";
-      else if (menu === "master-keyword") path = "/master-keyword";
-      else if (menu === "master-jenis-biaya") path = "/master-jenis-biaya";
-      else if (menu === "profile") path = "/data-kegiatan/profile";
-
-      if (window.location.pathname !== path) {
-        window.history.pushState(null, "", path);
-      }
-    }
-  };
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isKegiatanOpen, setIsKegiatanOpen] = useState(true);
 
   useEffect(() => {
-    refetchActivities();
-
-    const syncUrlMenu = () => {
-      if (typeof window !== "undefined") {
-        const storedRole = localStorage.getItem("userRole");
-        const path = window.location.pathname;
-
-        // Path /user-form or / (root) -> Always User role & User form without requiring login
-        if (path === "/user-form" || path === "/") {
-          setUserRole("user");
-          setActiveMenu("user-form");
-          if (path === "/") {
-            window.history.replaceState(null, "", "/user-form");
-          }
-          return;
-        }
-
-        // Admin paths (/data-kegiatan, /tambah-kegiatan, /master-*, /data-kegiatan/profile)
-        if (storedRole === "admin") {
-          setUserRole("admin");
-          if (path === "/data-kegiatan/profile") {
-            setActiveMenu("profile");
-          } else if (path === "/tambah-kegiatan") {
-            setActiveMenu("tambah-kegiatan");
-          } else if (path === "/master-program" || path === "/master-program-edit") {
-            setActiveMenu("master-program");
-          } else if (path === "/master-keyword" || path === "/master-keyword-edit") {
-            setActiveMenu("master-keyword");
-          } else if (path === "/master-jenis-biaya" || path === "/master-jenis-biaya-edit") {
-            setActiveMenu("master-jenis-biaya");
-          } else if (path === "/master-grey-area" || path === "/master-grey-area-edit") {
-            setActiveMenu("master-grey-area");
-          } else if (path === "/data-kegiatan") {
-            setActiveMenu("data-kegiatan");
-          }
-        } else {
-          // If accessing admin pages without login, direct to user form page
-          setUserRole("user");
-          setActiveMenu("user-form");
-          if (path !== "/user-form") {
-            window.history.replaceState(null, "", "/user-form");
-          }
-        }
-      }
-    };
-
-    syncUrlMenu();
-    window.addEventListener("popstate", syncUrlMenu);
-    return () => window.removeEventListener("popstate", syncUrlMenu);
+    fetch("/api/activities")
+      .then((response) => response.json())
+      .then((result) => {
+        if (result.success && Array.isArray(result.data)) setDataList(result.data);
+      })
+      .catch((error) => console.error("Error fetching activities:", error));
   }, []);
 
-  // Form Submit Handler -> Step 1: Validate against master_keywords in PostgreSQL
-  const handleValidateAndPreview = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const filteredData = dataList.filter((item) => {
+    const query = searchQuery.toLowerCase();
+    const matchesSearch = [item.namaProgram, item.subjekKegiatan, item.jenisBiaya, item.batch]
+      .some((value) => value.toLowerCase().includes(query));
+    return matchesSearch && (filterJenisBiaya === "all" || item.jenisBiaya === filterJenisBiaya);
+  });
+
+  const navigate = (menu: ActiveMenuType) => {
+    const paths: Partial<Record<ActiveMenuType, string>> = {
+      "data-kegiatan": "/data-kegiatan",
+      "tambah-kegiatan": "/tambah-kegiatan",
+      "master-program": "/master-program",
+      "master-keyword": "/master-keyword",
+      "master-jenis-biaya": "/master-jenis-biaya",
+      "master-grey-area": "/master-grey-area",
+      profile: "/data-kegiatan/profile",
+    };
+    window.location.href = paths[menu] || "/data-kegiatan";
+  };
+
+  return (
+    <div className="min-h-screen flex bg-[#F1F5F9] text-slate-800 font-sans">
+      <Sidebar activeMenu="data-kegiatan" setActiveMenu={navigate} isKegiatanOpen={isKegiatanOpen} setIsKegiatanOpen={setIsKegiatanOpen} sidebarCollapsed={sidebarCollapsed} userRole="admin" setUserRole={() => undefined} />
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
+        <Header activeMenu="data-kegiatan" sidebarCollapsed={sidebarCollapsed} setSidebarCollapsed={setSidebarCollapsed} userRole="admin" setUserRole={() => undefined} />
+        <main className="flex-1 p-3 sm:p-6 md:p-8 space-y-6 max-w-7xl w-full mx-auto overflow-x-hidden">
+          <ActivityTable filteredData={filteredData} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filterJenisBiaya={filterJenisBiaya} setFilterJenisBiaya={setFilterJenisBiaya} showFilterDropdown={showFilterDropdown} setShowFilterDropdown={setShowFilterDropdown} currentPage={currentPage} setCurrentPage={setCurrentPage} onViewItem={() => undefined} onDeleteItem={() => undefined} onDeleteAllItems={() => undefined} onNavigateToAdd={() => navigate("tambah-kegiatan")} />
+        </main>
+        <Footer />
+      </div>
+    </div>
+  );
+}
+
+function AdminRoutePage({ menu }: { menu: ActiveMenuType }) {
+  const [formValues, setFormValues] = useState({ namaProgram: "", subjekKegiatan: "", jenisBiaya: "", objekKegiatan: "", tanggalAwal: "", batch: "" });
+  const resetForm = () => setFormValues({ namaProgram: "", subjekKegiatan: "", jenisBiaya: "", objekKegiatan: "", tanggalAwal: "", batch: "" });
+
+  if (menu === "data-kegiatan") return <AdminDataKegiatan />;
+  if (menu === "master-program") return <AdminShell activeMenu={menu}><MasterProgramView /></AdminShell>;
+  if (menu === "master-keyword") return <AdminShell activeMenu={menu}><MasterKeywordView /></AdminShell>;
+  if (menu === "master-jenis-biaya") return <AdminShell activeMenu={menu}><MasterJenisBiayaView /></AdminShell>;
+  if (menu === "master-grey-area") return <AdminShell activeMenu={menu}><MasterGreyAreaView /></AdminShell>;
+  if (menu === "profile") return <AdminShell activeMenu={menu}><ProfileSettingsView /></AdminShell>;
+  return <AdminShell activeMenu="tambah-kegiatan"><TambahKegiatanView formValues={formValues} setFormValues={setFormValues} onSubmit={() => undefined} onReset={resetForm} onBackToData={() => { window.location.href = "/data-kegiatan"; }} /></AdminShell>;
+}
+
+function UserInputPage() {
+  const [formValues, setFormValues] = useState({ namaProgram: "", subjekKegiatan: "", jenisBiaya: "", objekKegiatan: "", tanggalAwal: "", batch: "" });
+  const [isValidating, setIsValidating] = useState(false);
+  const [activeMenu, setActiveMenu] = useState<ActiveMenuType>("user-form");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isKegiatanOpen, setIsKegiatanOpen] = useState(true);
+
+  const resetForm = () => setFormValues({ namaProgram: "", subjekKegiatan: "", jenisBiaya: "", objekKegiatan: "", tanggalAwal: "", batch: "" });
+
+  const submitForm = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (!formValues.namaProgram || !formValues.subjekKegiatan || !formValues.jenisBiaya) {
-      Swal.fire({
-        icon: "warning",
-        title: "Input Tidak Lengkap",
-        text: "Harap lengkapi seluruh kolom yang bertanda bintang (*).",
-        confirmButtonColor: "#0072CE",
-      });
+      await Swal.fire({ icon: "warning", title: "Input Tidak Lengkap", text: "Harap lengkapi kolom yang wajib diisi.", confirmButtonColor: "#0072CE" });
       return;
     }
 
     setIsValidating(true);
     try {
-      const res = await fetch("/api/activities/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formValues),
-      });
-      const json = await res.json();
-
-      if (json.success) {
-        const keywords = json.detectedKeywords || [];
-        const greyAreas = json.detectedGreyAreas || [];
-        const statusVal: "AMAN" | "TERDETEKSI_NAC" | "GREY_AREA" = json.statusVal || (keywords.length > 0 ? "TERDETEKSI_NAC" : (greyAreas.length > 0 ? "GREY_AREA" : "AMAN"));
-
-        const nacNotes = keywords.map((k: { keyword: string; field: string; category: string }) => `[Merah] Kata "${k.keyword}" pada ${k.field} (${k.category})`).join("; ");
-        const greyNotes = greyAreas.map((g: { keyword: string; field: string; category: string; ringkasan?: string }) => `[Grey Area] Transaksi "${g.keyword}" pada ${g.field}${g.ringkasan ? `: ${g.ringkasan}` : ""}`).join("; ");
-
-        let catatanVal = "";
-        if (keywords.length > 0 && greyAreas.length > 0) {
-          catatanVal = `${nacNotes} | ${greyNotes}`;
-        } else if (keywords.length > 0) {
-          catatanVal = nacNotes;
-        } else if (greyAreas.length > 0) {
-          catatanVal = greyNotes;
-        }
-
-        setIsSafe(statusVal === "AMAN");
-        setDetectedKeywords(keywords);
-        setDetectedGreyAreas(greyAreas);
-        setFormValues((prev) => ({
-          ...prev,
-          statusNac: statusVal,
-          catatanNac: catatanVal
-        }));
-        setIsPreviewOpen(true);
-      } else {
-
-        Swal.fire({
-          icon: "error",
-          title: "Gagal Validasi",
-          text: json.error || "Gagal melakukan validasi keyword NAC & Grey Area.",
-          confirmButtonColor: "#e11d48",
-        });
-      }
-    } catch (err) {
-      console.error("Error validating form:", err);
-      Swal.fire({
-        icon: "error",
-        title: "Gagal Validasi",
-        text: (err as Error).message || "Terjadi kesalahan saat menghubungi API validasi.",
-        confirmButtonColor: "#e11d48",
-      });
+      const validationResponse = await fetch("/api/activities/validate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formValues) });
+      const validation = await validationResponse.json();
+      if (!validation.success) throw new Error(validation.error || "Validasi gagal.");
+      const statusNac = validation.statusVal || "AMAN";
+      const response = await fetch("/api/activities", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...formValues, statusNac }) });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error || "Data gagal disimpan.");
+      resetForm();
+      await Swal.fire({ icon: "success", title: "Berhasil Menyimpan Data", text: "Laporan kegiatan berhasil dikirim.", confirmButtonColor: "#0072CE", timer: 2200 });
+    } catch (error) {
+      await Swal.fire({ icon: "error", title: "Gagal Menyimpan Data", text: error instanceof Error ? error.message : "Terjadi kesalahan.", confirmButtonColor: "#e11d48" });
     } finally {
       setIsValidating(false);
     }
   };
 
-  // Step 2: Confirm Submit after Preview (if Safe) -> POST to PostgreSQL API
-  const handleConfirmSubmit = async () => {
-    setIsSubmitting(true);
-    try {
-      const res = await fetch("/api/activities", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formValues),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setIsPreviewOpen(false);
-        handleResetForm();
-        refetchActivities();
-        if (userRole === "user") {
-          setActiveMenu("user-form");
-        } else {
-          setActiveMenu("data-kegiatan");
-        }
-
-        Swal.fire({
-          icon: "success",
-          title: "Berhasil Menyimpan Data!",
-          text: "Data kegiatan baru berhasil disimpan ke database.",
-          confirmButtonColor: "#0072CE",
-          timer: 2500,
-        });
-      } else {
-        Swal.fire({
-          icon: "error",
-          title: "Gagal Menyimpan Data",
-          text: json.error || "Gagal menyimpan data ke database.",
-          confirmButtonColor: "#e11d48",
-        });
-      }
-    } catch (err) {
-      console.error("Error submitting form:", err);
-      Swal.fire({
-        icon: "error",
-        title: "Gagal Menyimpan Data",
-        text: (err as Error).message || "Terjadi kesalahan saat menyimpan ke database.",
-        confirmButtonColor: "#e11d48",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleMenuChange = (menu: ActiveMenuType) => {
+    if (menu === "user-form" || menu === "riwayat-user") setActiveMenu(menu);
   };
-
-  const handleResetForm = () => {
-    setFormValues({
-      namaProgram: "",
-      subjekKegiatan: "",
-      jenisBiaya: "",
-      objekKegiatan: "",
-      tanggalAwal: getTodayDateFormatted(),
-      batch: ""
-    });
-  };
-
-  // Delete Action Handler -> DELETE to PostgreSQL API
-  const confirmDelete = async () => {
-    if (deletingId === null) return;
-    try {
-      const res = await fetch(`/api/activities/${deletingId}`, {
-        method: "DELETE",
-      });
-      const json = await res.json();
-      if (json.success) {
-        refetchActivities();
-        Swal.fire({
-          icon: "success",
-          title: "Berhasil Dihapus!",
-          text: "Data kegiatan telah berhasil dihapus dari database.",
-          confirmButtonColor: "#0072CE",
-          timer: 2000,
-        });
-      } else {
-        Swal.fire({
-          icon: "error",
-          title: "Gagal Menghapus Data",
-          text: json.error || "Gagal menghapus data dari database.",
-          confirmButtonColor: "#e11d48",
-        });
-      }
-    } catch (err) {
-      console.error("Error deleting item:", err);
-      Swal.fire({
-        icon: "error",
-        title: "Gagal Menghapus Data",
-        text: (err as Error).message || "Terjadi kesalahan saat menghapus data.",
-        confirmButtonColor: "#e11d48",
-      });
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
-  // Delete All Action Handler -> DELETE /api/activities
-  const confirmDeleteAll = async () => {
-    const result = await Swal.fire({
-      icon: "warning",
-      title: "Hapus Semua Data Kegiatan?",
-      text: "Apakah Anda yakin ingin menghapus SELURUH data kegiatan? Tindakan ini tidak dapat dibatalkan!",
-      showCancelButton: true,
-      confirmButtonColor: "#e11d48",
-      cancelButtonColor: "#64748b",
-      confirmButtonText: "Ya, Hapus Semua",
-      cancelButtonText: "Batal",
-    });
-
-    if (result.isConfirmed) {
-      try {
-        const res = await fetch("/api/activities", { method: "DELETE" });
-        const json = await res.json();
-        if (json.success) {
-          refetchActivities();
-          Swal.fire({
-            icon: "success",
-            title: "Berhasil Dihapus!",
-            text: "Seluruh data kegiatan telah berhasil dihapus dari database.",
-            confirmButtonColor: "#0072CE",
-            timer: 2000,
-          });
-        } else {
-          Swal.fire({
-            icon: "error",
-            title: "Gagal Menghapus",
-            text: json.error || "Gagal menghapus semua data.",
-            confirmButtonColor: "#e11d48",
-          });
-        }
-      } catch (err) {
-        console.error("Error deleting all items:", err);
-        Swal.fire({
-          icon: "error",
-          title: "Gagal Menghapus",
-          text: (err as Error).message || "Terjadi kesalahan koneksi server.",
-          confirmButtonColor: "#e11d48",
-        });
-      }
-    }
-  };
-
-  // Filtered List Memo
-  const filteredData = useMemo(() => {
-    return dataList.filter((item) => {
-      const q = searchQuery.toLowerCase();
-      const matchesSearch =
-        item.namaProgram.toLowerCase().includes(q) ||
-        item.subjekKegiatan.toLowerCase().includes(q) ||
-        item.jenisBiaya.toLowerCase().includes(q) ||
-        item.batch.toLowerCase().includes(q);
-
-      const matchesJenis =
-        filterJenisBiaya === "all" ? true : item.jenisBiaya === filterJenisBiaya;
-
-      return matchesSearch && matchesJenis;
-    });
-  }, [dataList, searchQuery, filterJenisBiaya]);
 
   return (
-    <div className="min-h-screen flex bg-[#F1F5F9] text-slate-800 font-sans selection:bg-[#00A3E0] selection:text-white">
-      {/* Toast Notification */}
-      <Toast message={toastMessage} />
-
-      {/* LEFT SIDEBAR */}
-      <Sidebar
-        activeMenu={activeMenu}
-        setActiveMenu={handleMenuChange}
-        isKegiatanOpen={isKegiatanOpen}
-        setIsKegiatanOpen={setIsKegiatanOpen}
-        sidebarCollapsed={sidebarCollapsed}
-        userRole={userRole}
-        setUserRole={setUserRole}
-      />
-
-      {/* MAIN CONTENT WRAPPER */}
+    <div className="min-h-screen flex bg-[#F1F5F9] text-slate-800 font-sans">
+      <Sidebar activeMenu={activeMenu} setActiveMenu={handleMenuChange} isKegiatanOpen={isKegiatanOpen} setIsKegiatanOpen={setIsKegiatanOpen} sidebarCollapsed={sidebarCollapsed} userRole="user" setUserRole={() => undefined} />
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
-        {/* TOP HEADER BAR */}
-        <Header
-          activeMenu={activeMenu}
-          sidebarCollapsed={sidebarCollapsed}
-          setSidebarCollapsed={setSidebarCollapsed}
-          userRole={userRole}
-          setUserRole={setUserRole}
-        />
-
-        {/* MAIN BODY AREA */}
+        <Header activeMenu={activeMenu} sidebarCollapsed={sidebarCollapsed} setSidebarCollapsed={setSidebarCollapsed} userRole="user" setUserRole={() => undefined} />
         <main className="flex-1 p-3 sm:p-6 md:p-8 space-y-6 max-w-7xl w-full mx-auto overflow-x-hidden">
-          {userRole === "user" || activeMenu === "user-form" || activeMenu === "riwayat-user" ? (
-            /* HALAMAN KHUSUS PEGAWAI PLN */
-            <UserFormView
-              formValues={formValues}
-              setFormValues={setFormValues}
-              onSubmit={handleValidateAndPreview}
-              onReset={handleResetForm}
-              isValidating={isValidating}
-              activities={dataList}
-              onViewItem={(item) => setViewingItem(item)}
-              activeMenu={activeMenu}
-            />
-          ) : activeMenu === "master-program" ? (
-
-            <MasterProgramView />
-          ) : activeMenu === "master-keyword" ? (
-            <MasterKeywordView />
-          ) : activeMenu === "master-jenis-biaya" ? (
-            <MasterJenisBiayaView />
-          ) : activeMenu === "master-grey-area" ? (
-            <MasterGreyAreaView />
-          ) : activeMenu === "profile" ? (
-            <ProfileSettingsView />
-          ) : activeMenu === "tambah-kegiatan" ? (
-
-            /* HALAMAN KHUSUS TAMBAH KEGIATAN */
-            <TambahKegiatanView
-              formValues={formValues}
-              setFormValues={setFormValues}
-              onSubmit={handleValidateAndPreview}
-              onReset={handleResetForm}
-              onBackToData={() => setActiveMenu("data-kegiatan")}
-              isValidating={isValidating}
-            />
-          ) : (
-            /* HALAMAN KHUSUS DATA KEGIATAN (ADMIN) */
-            <ActivityTable
-              filteredData={filteredData}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              filterJenisBiaya={filterJenisBiaya}
-              setFilterJenisBiaya={setFilterJenisBiaya}
-              showFilterDropdown={showFilterDropdown}
-              setShowFilterDropdown={setShowFilterDropdown}
-              currentPage={currentPage}
-              setCurrentPage={setCurrentPage}
-              onViewItem={(item) => setViewingItem(item)}
-              onDeleteItem={(id) => setDeletingId(id)}
-              onDeleteAllItems={confirmDeleteAll}
-              onNavigateToAdd={() => setActiveMenu("tambah-kegiatan")}
-            />
-          )}
+          <UserFormView formValues={formValues} setFormValues={setFormValues} onSubmit={submitForm} onReset={resetForm} isValidating={isValidating} activeMenu={activeMenu} />
         </main>
-
-        {/* BOTTOM PAGE FOOTER */}
         <Footer />
       </div>
-
-      {/* MODALS */}
-      <ViewDetailModal
-        item={viewingItem}
-        onClose={() => setViewingItem(null)}
-      />
-
-      <DeleteConfirmModal
-        deletingId={deletingId}
-        onCancel={() => setDeletingId(null)}
-        onConfirm={confirmDelete}
-      />
-
-      {/* NAC EARLY WARNING VALIDATION PREVIEW MODAL */}
-      <ValidationPreviewModal
-        isOpen={isPreviewOpen}
-        isSafe={isSafe}
-        detectedKeywords={detectedKeywords}
-        detectedGreyAreas={detectedGreyAreas}
-        formValues={formValues}
-        onClose={() => setIsPreviewOpen(false)}
-        onConfirmSubmit={handleConfirmSubmit}
-        isSubmitting={isSubmitting}
-      />
     </div>
   );
 }
 
+export default function Home(_props: HomeProps) {
+  if (_props.initialRole === "admin" && _props.initialMenu && _props.initialMenu !== "user-form") {
+    return <AdminRoutePage menu={_props.initialMenu} />;
+  }
+  if (_props.initialRole === "user") return <UserInputPage />;
+
+  return <LandingPage />;
+}

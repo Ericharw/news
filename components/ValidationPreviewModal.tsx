@@ -1,5 +1,5 @@
-import React from "react";
-import { X, CheckCircle2, AlertTriangle, ArrowLeft, Send, ShieldAlert, HelpCircle } from "lucide-react";
+﻿import React, { useState, useEffect } from "react";
+import { X, CheckCircle2, AlertTriangle, ArrowLeft, Send, ShieldAlert, HelpCircle, Copy, Download, Check } from "lucide-react";
 import { ActivityFormValues } from "@/types/activity";
 
 interface DetectedKeywordInfo {
@@ -32,6 +32,42 @@ const formatTanggal2Digit = (tanggal: string) => {
   return tanggal.replace(/\b20(\d{2})\b/g, "$1");
 };
 
+const getSingkatanProgram = (namaProgram: string) => {
+  if (!namaProgram) return "";
+  const words = namaProgram.replace(/[^a-zA-Z0-9\s]/g, "").split(/\s+/).filter(Boolean);
+  if (words.length === 1) return words[0].substring(0, 5).toUpperCase();
+  return words.map((w) => w[0].toUpperCase()).join("");
+};
+
+const getSingkatanJenisBiaya = (jenis: string): string => {
+  if (!jenis) return "";
+  const trimmed = jenis.trim().toUpperCase();
+  if (trimmed.includes("PERJALANAN") || trimmed === "PD" || trimmed.includes("PERDIN")) return "PERDIN";
+  if (trimmed.includes("AKOMODASI") || trimmed === "AKM" || trimmed.includes("AKOM")) return "AKOM";
+  if (trimmed.includes("KONSUM") || trimmed.includes("KONS")) return "KONS";
+  if (trimmed.includes("AMORTISASI") || trimmed.includes("AMOR")) return "AMOR";
+  if (trimmed.includes("PAJAK") || trimmed.includes("RETRIBUSI")) return "PAJAK";
+  if (trimmed.includes("IURAN")) return "IURAN";
+  if (trimmed.includes("CETAK")) return "CETAK";
+  if (trimmed.includes("ATK")) return "ATK";
+  if (trimmed.includes("BANK")) return "BANK";
+  if (trimmed.includes("SARANA") || trimmed.includes("SARJAR")) return "SARANA";
+  if (/^[A-Z0-9\s-]{2,8}$/.test(jenis.trim())) return jenis.trim().toUpperCase();
+  const clean = trimmed.replace(/^[0-9.]+\s*/, "");
+  return clean.length > 8 ? clean.substring(0, 6) : clean;
+};
+
+const buildRingkasan = (formValues: ActivityFormValues): string => {
+  const progCode = getSingkatanProgram(formValues.namaProgram || "");
+  const subjek = formValues.subjekKegiatan || "";
+  const objek = formValues.objekKegiatan || "";
+  const jbCode = getSingkatanJenisBiaya(formValues.jenisBiaya || "");
+  const tgl = formatTanggal2Digit(formValues.tanggalAwal || "");
+  return objek
+    ? `${progCode}/${subjek}/${objek}/${jbCode}/${tgl}`
+    : `${progCode}/${subjek}/${jbCode}/${tgl}`;
+};
+
 export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
   isOpen,
   isSafe,
@@ -42,10 +78,56 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
   onConfirmSubmit,
   isSubmitting = false
 }) => {
+  const [copied, setCopied] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (copied) {
+      const t = setTimeout(() => setCopied(false), 2000);
+      return () => clearTimeout(t);
+    }
+  }, [copied]);
+
+  useEffect(() => {
+    if (saved) {
+      const t = setTimeout(() => setSaved(false), 2000);
+      return () => clearTimeout(t);
+    }
+  }, [saved]);
+
   if (!isOpen) return null;
 
   const hasRed = detectedKeywords.length > 0 || formValues.statusNac === "TERDETEKSI_NAC";
   const hasGrey = detectedGreyAreas.length > 0 || formValues.statusNac === "GREY_AREA";
+  const ringkasan = buildRingkasan(formValues);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(ringkasan);
+      setCopied(true);
+    } catch {
+      const el = document.createElement("textarea");
+      el.value = ringkasan;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      setCopied(true);
+    }
+  };
+
+  const handleSave = () => {
+    const blob = new Blob([ringkasan], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Ringkasan_${(formValues.namaProgram || "Kegiatan").replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setSaved(true);
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/65 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
@@ -58,7 +140,7 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
             </div>
             <div>
               <span className="text-[10px] font-extrabold text-[#0072CE] uppercase tracking-wider">
-                NEWS • Validation System
+                NEWS {String.fromCharCode(8226)} Validation System
               </span>
               <h3 className="text-lg font-black text-slate-900 tracking-tight">
                 RINGKASAN DATA KEGIATAN
@@ -105,20 +187,65 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
           </div>
         </div>
 
+        {/* RINGKASAN ISI FORM (Singkatan Format) */}
+        <div className="mt-4 bg-gradient-to-r from-[#003B70] to-[#0072CE] rounded-2xl p-4 sm:p-5 border border-[#00A3E0]/30 shadow-md">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[10px] font-extrabold text-[#FFC72C] uppercase tracking-wider flex items-center gap-1.5">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#FFC72C]"></span>
+              Ringkasan Isi Form
+            </span>
+          </div>
+
+          <div className="bg-white/10 rounded-xl px-3 py-2.5 mb-3 border border-white/20">
+            <p className="text-white font-black text-sm sm:text-base tracking-wide break-all leading-relaxed select-all">
+              {ringkasan}
+            </p>
+          </div>
+
+          <p className="text-sky-200 text-[10px] font-medium mb-3 leading-relaxed">
+            Format: <span className="text-white font-bold">PROGRAM / SUBJEK / OBJEK / JENIS BIAYA / TANGGAL</span>. Salin atau simpan ringkasan ini sebagai referensi.
+          </p>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={handleCopy}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border shadow-xs ${
+                copied
+                  ? "bg-emerald-500 border-emerald-400 text-white"
+                  : "bg-white/20 hover:bg-white/30 border-white/30 text-white"
+              }`}
+            >
+              {copied ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copied ? "Tersalin!" : "Salin Ringkasan"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSave}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border shadow-xs ${
+                saved
+                  ? "bg-emerald-500 border-emerald-400 text-white"
+                  : "bg-[#FFC72C] hover:bg-[#F2B81A] border-amber-300 text-slate-900"
+              }`}
+            >
+              {saved ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : <Download className="w-3.5 h-3.5" />}
+              <span>{saved ? "Tersimpan!" : "Simpan (.txt)"}</span>
+            </button>
+          </div>
+        </div>
+
         {/* Dynamic Decision Status Box */}
         <div className="mt-5 space-y-4">
           {hasRed && (
-            /* KONDISI MERAH: TERDETEKSI NAC */
             <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-5 text-rose-950 space-y-2.5 shadow-xs">
               <div className="flex items-center gap-2 font-black text-sm text-rose-700">
                 <AlertTriangle className="w-5 h-5 shrink-0 stroke-[2.5]" />
                 <span>[ INDIKASI NAC TERDETEKSI - STATUS MERAH ]</span>
               </div>
-
               <p className="text-xs font-semibold text-rose-900 leading-relaxed">
                 Sistem mendeteksi adanya kata kunci <strong>Non-Allowable Cost (NAC)</strong>. Data tetap dapat disimpan ke sistem dan akan ditandai dengan badge <strong>MERAH</strong> serta catatan alasannya.
               </p>
-
               <div className="bg-white/90 p-3 rounded-xl border border-rose-200 space-y-1.5 text-xs">
                 {detectedKeywords.map((item, idx) => (
                   <div key={idx} className="flex items-start gap-1.5 font-extrabold text-rose-700">
@@ -129,7 +256,6 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
                   </div>
                 ))}
               </div>
-
               <p className="text-[11px] font-medium text-rose-800 pt-1">
                 Anda dapat memilih untuk membenahi data atau memilih <strong>TETAP SUBMIT DATA</strong>.
               </p>
@@ -137,17 +263,14 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
           )}
 
           {hasGrey && (
-            /* KONDISI GREY: GREY AREA TERDETEKSI */
             <div className="bg-slate-100 border-2 border-slate-300 rounded-2xl p-5 text-slate-900 space-y-2.5 shadow-xs">
               <div className="flex items-center gap-2 font-black text-sm text-slate-800">
                 <HelpCircle className="w-5 h-5 shrink-0 stroke-[2.5] text-slate-700" />
                 <span>[ INDIKASI GREY AREA TERDETEKSI - STATUS GREY ]</span>
               </div>
-
               <p className="text-xs font-semibold text-slate-800 leading-relaxed">
                 Sistem mendeteksi adanya transaksi <strong>Grey Area</strong> sesuai master database. Data dapat disimpan ke dalam sistem dan akan ditandai dengan catatan alasannya.
               </p>
-
               <div className="bg-white/90 p-3 rounded-xl border border-slate-200 space-y-1.5 text-xs">
                 {detectedGreyAreas.map((item, idx) => (
                   <div key={idx} className="flex items-start gap-1.5 font-extrabold text-slate-800">
@@ -158,7 +281,6 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
                   </div>
                 ))}
               </div>
-
               <p className="text-[11px] font-medium text-slate-600 pt-1">
                 Anda dapat memilih untuk membenahi data atau memilih <strong>TETAP SUBMIT DATA</strong>.
               </p>
@@ -166,13 +288,11 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
           )}
 
           {!hasRed && !hasGrey && (
-            /* KONDISI HIJAU: AMAN */
             <div className="bg-[#ECFDF5] border-2 border-emerald-400 rounded-2xl p-5 text-emerald-950 space-y-2 shadow-xs">
               <div className="flex items-center gap-2 font-black text-sm text-emerald-800">
                 <CheckCircle2 className="w-5 h-5 shrink-0 stroke-[2.5] text-emerald-600" />
                 <span>[ DATA AMAN - STATUS HIJAU ]</span>
               </div>
-
               <p className="text-xs font-semibold text-emerald-900 leading-relaxed">
                 Tidak ditemukan keyword indikasi <strong>Non-Allowable Cost (NAC)</strong> maupun <strong>Grey Area</strong>. Data siap untuk disimpan ke dalam sistem dengan badge <strong>HIJAU (AMAN)</strong>.
               </p>
@@ -187,7 +307,7 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
             className="w-full sm:w-auto px-4 py-2.5 border border-slate-200 text-slate-700 font-bold rounded-xl text-xs sm:text-sm hover:bg-slate-100 transition-all flex items-center justify-center gap-1.5"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>KEMBALI & EDIT</span>
+            <span>KEMBALI &amp; EDIT</span>
           </button>
 
           <button
