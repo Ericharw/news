@@ -41,15 +41,11 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
 }) => {
   const itemsPerPage = 10;
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, filterJenisBiaya, setCurrentPage]);
-
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
-  const paginatedData = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredData.slice(start, start + itemsPerPage);
-  }, [filteredData, currentPage]);
+  // Multi-filter internal state for Admin Data Kegiatan
+  const [filterNamaProgram, setFilterNamaProgram] = useState("all");
+  const [filterTanggalOption, setFilterTanggalOption] = useState("all"); // 'all' | '1hari' | '1minggu' | '1bulan' | '1tahun' | 'custom'
+  const [filterTanggalCustom, setFilterTanggalCustom] = useState("");
+  const [filterStatusNac, setFilterStatusNac] = useState("all");
 
   const [filterOptions, setFilterOptions] = useState<string[]>([
     "all",
@@ -95,6 +91,155 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
     loadMasterJenisBiaya();
   }, []);
 
+  const programListOptions = useMemo(() => {
+    const fromOptions = PROGRAM_OPTIONS.map((p) => p.label);
+    const fromData = filteredData.map((d) => d.namaProgram).filter(Boolean);
+    return Array.from(new Set([...fromOptions, ...fromData]));
+  }, [filteredData]);
+
+  const parseItemDate = (tanggalStr: string): Date | null => {
+    if (!tanggalStr) return null;
+    const str = tanggalStr.trim();
+
+    if (/^\d{1,2}\/\d{1,2}\/\d{2,4}/.test(str)) {
+      const parts = str.split("/");
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      let year = parseInt(parts[2], 10);
+      if (year < 100) year += 2000;
+      return new Date(year, month, day);
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+      const parts = str.split("-");
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      return new Date(year, month, day);
+    }
+
+    const d = new Date(str);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  const matchDateRange = (tanggalItem: string, option: string, customDate: string) => {
+    if (option === "all" && !customDate) return true;
+
+    if (option === "custom" || (option === "all" && customDate)) {
+      if (!customDate) return true;
+      if (!tanggalItem) return false;
+      const [fy, fm, fd] = customDate.split("-");
+      const shortYear = fy.slice(-2);
+      if (tanggalItem.includes(customDate)) return true;
+      if (tanggalItem.includes(`${fd}/${fm}/${fy}`)) return true;
+      if (tanggalItem.includes(`${fd}/${fm}/${shortYear}`)) return true;
+
+      const d = parseItemDate(tanggalItem);
+      if (!d) return false;
+      const [cy, cm, cd] = customDate.split("-").map((v) => parseInt(v, 10));
+      return d.getFullYear() === cy && d.getMonth() === cm - 1 && d.getDate() === cd;
+    }
+
+    const itemDate = parseItemDate(tanggalItem);
+    if (!itemDate) return true;
+
+    const now = new Date();
+    const nowEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).getTime();
+    const diffMs = nowEnd - itemDate.getTime();
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+    if (option === "1hari") {
+      return diffDays >= -1 && diffDays <= 1;
+    }
+    if (option === "1minggu") {
+      return diffDays >= -7 && diffDays <= 7;
+    }
+    if (option === "1bulan") {
+      return diffDays >= -30 && diffDays <= 30;
+    }
+    if (option === "1tahun") {
+      return diffDays >= -365 && diffDays <= 365;
+    }
+
+    return true;
+  };
+
+  const matchStatusNac = (item: ActivityItem, filterStatus: string) => {
+    if (filterStatus === "all") return true;
+
+    let redNoteText = "";
+    let greyNoteText = "";
+
+    if (item.catatanNac) {
+      if (item.catatanNac.includes("|")) {
+        const parts = item.catatanNac.split("|");
+        redNoteText = parts[0].replace(/^\[Merah\]\s*/i, "").trim();
+        greyNoteText = parts[1].replace(/^\[Grey Area\]\s*/i, "").trim();
+      } else {
+        const lower = item.catatanNac.toLowerCase();
+        if (lower.includes("grey")) greyNoteText = item.catatanNac;
+        else redNoteText = item.catatanNac;
+      }
+    }
+
+    const isRed = item.statusNac === "TERDETEKSI_NAC" || Boolean(redNoteText);
+    const isGrey = item.statusNac === "GREY_AREA" || Boolean(greyNoteText);
+    const isSafe = !isRed && !isGrey;
+
+    if (filterStatus === "AMAN") return isSafe;
+    if (filterStatus === "TERDETEKSI_NAC") return isRed;
+    if (filterStatus === "GREY_AREA") return isGrey;
+
+    return true;
+  };
+
+  const finalFilteredData = useMemo(() => {
+    return filteredData.filter((item) => {
+      const matchProgram =
+        filterNamaProgram === "all"
+          ? true
+          : item.namaProgram.toLowerCase().trim() === filterNamaProgram.toLowerCase().trim();
+
+      const matchJenis =
+        filterJenisBiaya === "all"
+          ? true
+          : item.jenisBiaya.toLowerCase().trim() === filterJenisBiaya.toLowerCase().trim();
+
+      const matchTgl = matchDateRange(item.tanggalAwal, filterTanggalOption, filterTanggalCustom);
+
+      const matchNac = matchStatusNac(item, filterStatusNac);
+
+      return matchProgram && matchJenis && matchTgl && matchNac;
+    });
+  }, [filteredData, filterNamaProgram, filterJenisBiaya, filterTanggalOption, filterTanggalCustom, filterStatusNac]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterNamaProgram, filterJenisBiaya, filterTanggalOption, filterTanggalCustom, filterStatusNac, setCurrentPage]);
+
+  const totalPages = Math.ceil(finalFilteredData.length / itemsPerPage) || 1;
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return finalFilteredData.slice(start, start + itemsPerPage);
+  }, [finalFilteredData, currentPage]);
+
+  const activeFiltersCount =
+    (filterNamaProgram !== "all" ? 1 : 0) +
+    (filterJenisBiaya !== "all" ? 1 : 0) +
+    (filterTanggalOption !== "all" || filterTanggalCustom !== "" ? 1 : 0) +
+    (filterStatusNac !== "all" ? 1 : 0);
+
+  const hasActiveFilters = activeFiltersCount > 0;
+
+  const handleResetAllFilters = () => {
+    setFilterNamaProgram("all");
+    setFilterJenisBiaya("all");
+    setFilterTanggalOption("all");
+    setFilterTanggalCustom("");
+    setFilterStatusNac("all");
+    setCurrentPage(1);
+  };
+
   const getJenisBiayaBadge = (jenis: string) => {
     switch (jenis) {
       case "Perjalanan Dinas":
@@ -130,7 +275,6 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
     const rawTrimmed = jenis.trim();
     const lowerKey = rawTrimmed.toLowerCase();
 
-    // 1. Direct match or alias from master database
     if (masterJenisBiayaMap[lowerKey]) {
       return masterJenisBiayaMap[lowerKey].toUpperCase();
     }
@@ -142,7 +286,6 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
       return foundEntry[1].toUpperCase();
     }
 
-    // 2. Keyword fallback logic
     const trimmed = rawTrimmed.toUpperCase();
     if (trimmed.includes("SARJAR") || trimmed.includes("SARANA")) return "SARANA";
     if (trimmed.includes("AMORTISASI") || trimmed.includes("AMOR")) return "AMOR";
@@ -190,7 +333,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
   };
 
   const handleExportExcel = () => {
-    const dataToExport = filteredData.map((item, idx) => {
+    const dataToExport = finalFilteredData.map((item, idx) => {
       let redNoteText = "";
       let greyNoteText = "";
 
@@ -261,8 +404,6 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
     XLSX.writeFile(workbook, `Data_Kegiatan_PLN_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
-
-
   return (
     <div className="bg-white rounded-2xl border border-slate-200/90 p-5 md:p-6 shadow-xs transition-all">
       {/* Card Header & Controls */}
@@ -271,7 +412,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">{title || "Data Kegiatan"}</h2>
             <span className="px-2.5 py-0.5 rounded-full bg-[#0072CE]/10 text-[#0072CE] text-xs font-bold">
-              {filteredData.length} Item
+              {finalFilteredData.length} Item
             </span>
           </div>
           <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
@@ -300,41 +441,155 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
             )}
           </div>
 
-          {/* Filter Dropdown */}
+          {/* Multi-Filter Dropdown Button */}
           <div className="relative">
             <button
               onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-              className={`flex items-center gap-2 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-all shadow-2xs ${filterJenisBiaya !== "all" ? "border-[#0072CE] text-[#0072CE] bg-sky-50/80 ring-2 ring-[#0072CE]/20" : ""
-                }`}
+              className={`flex items-center gap-2 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-all shadow-2xs ${
+                hasActiveFilters ? "border-[#0072CE] text-[#0072CE] bg-sky-50/80 ring-2 ring-[#0072CE]/20 font-bold" : ""
+              }`}
             >
               <Filter className="w-3.5 h-3.5 text-slate-500" />
-              <span>Filter</span>
+              <span>Filter {hasActiveFilters ? `(${activeFiltersCount})` : ""}</span>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
             </button>
 
-            {/* Filter Dropdown Popover */}
+            {/* Filter Dropdown Popover (4 Criteria Filters) */}
             {showFilterDropdown && (
-              <div className="absolute right-0 mt-2 w-60 max-h-72 overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl z-30 p-2 text-xs animate-in fade-in zoom-in-95 divide-y divide-slate-100">
-                <div className="font-bold text-slate-400 px-3 py-1.5 uppercase text-[10px] tracking-wider sticky top-0 bg-white z-10">
-                  Filter Jenis Biaya
-                </div>
-                <div className="pt-1 space-y-0.5">
-                  {filterOptions.map((cat) => (
+              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-slate-200 rounded-2xl shadow-2xl z-40 p-4 text-xs animate-in fade-in zoom-in-95 space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                  <div className="font-extrabold text-slate-900 text-sm flex items-center gap-1.5">
+                    <Filter className="w-4 h-4 text-[#0072CE]" />
+                    <span>Filter Data Kegiatan</span>
+                  </div>
+                  {hasActiveFilters && (
                     <button
-                      key={cat}
-                      onClick={() => {
-                        setFilterJenisBiaya(cat);
-                        setShowFilterDropdown(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 rounded-xl transition-all font-medium truncate flex items-center justify-between ${filterJenisBiaya === cat
-                          ? "bg-[#0072CE] text-white font-bold shadow-xs"
-                          : "text-slate-700 hover:bg-slate-50"
-                        }`}
+                      onClick={handleResetAllFilters}
+                      className="text-[11px] font-bold text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
                     >
-                      <span className="truncate pr-2">{cat === "all" ? "Semua Jenis Biaya" : cat}</span>
-                      {filterJenisBiaya === cat && <span className="text-xs">✓</span>}
+                      Reset Semua
                     </button>
-                  ))}
+                  )}
+                </div>
+
+                <div className="space-y-3.5 max-h-96 overflow-y-auto pr-1">
+                  {/* 1. Filter Nama Program */}
+                  <div>
+                    <label className="block font-bold text-slate-800 text-[11px] mb-1">
+                      1. Nama Program / Diklat
+                    </label>
+                    <select
+                      value={filterNamaProgram}
+                      onChange={(e) => {
+                        setFilterNamaProgram(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white"
+                    >
+                      <option value="all">-- Semua Program --</option>
+                      {programListOptions.map((prog) => (
+                        <option key={prog} value={prog}>
+                          {prog}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* 2. Filter Jenis Biaya */}
+                  <div>
+                    <label className="block font-bold text-slate-800 text-[11px] mb-1">
+                      2. Jenis Biaya
+                    </label>
+                    <select
+                      value={filterJenisBiaya}
+                      onChange={(e) => {
+                        setFilterJenisBiaya(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white"
+                    >
+                      {filterOptions.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat === "all" ? "-- Semua Jenis Biaya --" : cat}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* 3. Filter Tanggal */}
+                  <div>
+                    <label className="block font-bold text-slate-800 text-[11px] mb-1">
+                      3. Rentang / Tanggal Kegiatan
+                    </label>
+                    <select
+                      value={filterTanggalOption}
+                      onChange={(e) => {
+                        setFilterTanggalOption(e.target.value);
+                        if (e.target.value !== "custom") setFilterTanggalCustom("");
+                        setCurrentPage(1);
+                      }}
+                      className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white mb-2"
+                    >
+                      <option value="all">-- Semua Tanggal --</option>
+                      <option value="1hari">1 Hari (24 Jam / Hari Ini)</option>
+                      <option value="1minggu">1 Minggu (7 Hari Terakhir)</option>
+                      <option value="1bulan">1 Bulan (30 Hari Terakhir)</option>
+                      <option value="1tahun">1 Tahun (365 Hari Terakhir)</option>
+                      <option value="custom">Pilih Tanggal Spesifik...</option>
+                    </select>
+
+                    {filterTanggalOption === "custom" && (
+                      <div className="relative flex items-center mt-1">
+                        <input
+                          type="date"
+                          value={filterTanggalCustom}
+                          onChange={(e) => {
+                            setFilterTanggalCustom(e.target.value);
+                            setCurrentPage(1);
+                          }}
+                          className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white"
+                        />
+                        {filterTanggalCustom && (
+                          <button
+                            onClick={() => setFilterTanggalCustom("")}
+                            className="absolute right-8 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                            title="Hapus tanggal spesifik"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 4. Filter Status NAC */}
+                  <div>
+                    <label className="block font-bold text-slate-800 text-[11px] mb-1">
+                      4. Status Validasi NAC
+                    </label>
+                    <select
+                      value={filterStatusNac}
+                      onChange={(e) => {
+                        setFilterStatusNac(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white"
+                    >
+                      <option value="all">-- Semua Status NAC --</option>
+                      <option value="AMAN">● AMAN (Hijau)</option>
+                      <option value="TERDETEKSI_NAC">● TERDETEKSI NAC (Merah)</option>
+                      <option value="GREY_AREA">● GREY AREA (Abu-abu)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 flex justify-end">
+                  <button
+                    onClick={() => setShowFilterDropdown(false)}
+                    className="px-4 py-1.5 bg-[#0072CE] text-white font-bold rounded-xl text-xs hover:bg-[#005bb5] transition-all cursor-pointer shadow-xs"
+                  >
+                    Terapkan Filter
+                  </button>
                 </div>
               </div>
             )}
@@ -366,18 +621,76 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
       </div>
 
       {/* Active Filter Chips */}
-      {filterJenisBiaya !== "all" && (
-        <div className="mb-4 flex items-center gap-2">
-          <span className="text-xs text-slate-500 font-medium">Filter Aktif:</span>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0072CE]/10 text-[#0072CE] text-xs font-bold border border-[#0072CE]/20">
-            {filterJenisBiaya}
-            <button
-              onClick={() => setFilterJenisBiaya("all")}
-              className="hover:text-rose-600 font-bold ml-1"
-            >
-              ✕
-            </button>
-          </span>
+      {hasActiveFilters && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <span className="text-xs text-slate-500 font-bold">Filter Aktif:</span>
+
+          {filterNamaProgram !== "all" && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-[#0072CE] text-xs font-bold border border-sky-200">
+              Program: {filterNamaProgram}
+              <button
+                onClick={() => setFilterNamaProgram("all")}
+                className="hover:text-rose-600 font-bold ml-0.5 cursor-pointer"
+              >
+                ✕
+              </button>
+            </span>
+          )}
+
+          {filterJenisBiaya !== "all" && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-[#0072CE] text-xs font-bold border border-sky-200">
+              Jenis: {filterJenisBiaya}
+              <button
+                onClick={() => setFilterJenisBiaya("all")}
+                className="hover:text-rose-600 font-bold ml-0.5 cursor-pointer"
+              >
+                ✕
+              </button>
+            </span>
+          )}
+
+          {(filterTanggalOption !== "all" || filterTanggalCustom !== "") && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-[#0072CE] text-xs font-bold border border-sky-200">
+              Tanggal:{" "}
+              {filterTanggalOption === "1hari"
+                ? "1 Hari"
+                : filterTanggalOption === "1minggu"
+                ? "1 Minggu"
+                : filterTanggalOption === "1bulan"
+                ? "1 Bulan"
+                : filterTanggalOption === "1tahun"
+                ? "1 Tahun"
+                : filterTanggalCustom || "Spesifik"}
+              <button
+                onClick={() => {
+                  setFilterTanggalOption("all");
+                  setFilterTanggalCustom("");
+                }}
+                className="hover:text-rose-600 font-bold ml-0.5 cursor-pointer"
+              >
+                ✕
+              </button>
+            </span>
+          )}
+
+          {filterStatusNac !== "all" && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-[#0072CE] text-xs font-bold border border-sky-200">
+              Status: {filterStatusNac === "AMAN" ? "AMAN (Hijau)" : filterStatusNac === "TERDETEKSI_NAC" ? "TERDETEKSI NAC (Merah)" : "GREY AREA (Abu-abu)"}
+              <button
+                onClick={() => setFilterStatusNac("all")}
+                className="hover:text-rose-600 font-bold ml-0.5 cursor-pointer"
+              >
+                ✕
+              </button>
+            </span>
+          )}
+
+          <button
+            onClick={handleResetAllFilters}
+            className="text-xs text-rose-600 hover:text-rose-800 font-bold hover:underline ml-1 cursor-pointer"
+          >
+            Reset Semua
+          </button>
         </div>
       )}
 
