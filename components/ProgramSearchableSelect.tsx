@@ -78,9 +78,8 @@ export const ProgramSearchableSelect: React.FC<ProgramSearchableSelectProps> = (
       {/* Trigger Button / Display Input */}
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full px-3.5 py-2.5 bg-slate-50/70 border ${
-          isOpen ? "border-[#00A3E0] ring-2 ring-[#00A3E0]/20 bg-white" : "border-slate-200"
-        } rounded-xl text-slate-800 text-xs sm:text-sm font-medium flex items-center justify-between cursor-pointer hover:border-slate-300 transition-all`}
+        className={`w-full px-3.5 py-2.5 bg-slate-50/70 border ${isOpen ? "border-[#00A3E0] ring-2 ring-[#00A3E0]/20 bg-white" : "border-slate-200"
+          } rounded-xl text-slate-800 text-xs sm:text-sm font-medium flex items-center justify-between cursor-pointer hover:border-slate-300 transition-all`}
       >
         <span className={value ? "text-slate-900 font-extrabold" : "text-slate-400 font-normal"}>
           {value || "-- Pilih atau cari Nama Program --"}
@@ -98,9 +97,8 @@ export const ProgramSearchableSelect: React.FC<ProgramSearchableSelectProps> = (
             </button>
           )}
           <ChevronDown
-            className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
-              isOpen ? "rotate-180 text-[#0072CE]" : ""
-            }`}
+            className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? "rotate-180 text-[#0072CE]" : ""
+              }`}
           />
         </div>
       </div>
@@ -110,7 +108,7 @@ export const ProgramSearchableSelect: React.FC<ProgramSearchableSelectProps> = (
         <input
           type="text"
           value={value}
-          onChange={() => {}}
+          onChange={() => { }}
           required
           tabIndex={-1}
           className="opacity-0 absolute inset-0 pointer-events-none h-0 w-0"
@@ -151,20 +149,18 @@ export const ProgramSearchableSelect: React.FC<ProgramSearchableSelectProps> = (
                   <div
                     key={idx}
                     onClick={() => handleSelect(opt)}
-                    className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-medium flex items-center justify-between cursor-pointer transition-all ${
-                      isSelected
+                    className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-medium flex items-center justify-between cursor-pointer transition-all ${isSelected
                         ? "bg-[#0072CE] text-white font-bold"
                         : "text-slate-700 hover:bg-sky-50 hover:text-[#0072CE]"
-                    }`}
+                      }`}
                   >
                     <span className="truncate pr-2">{opt.label}</span>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <span
-                        className={`px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
-                          isSelected
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${isSelected
                             ? "bg-white/20 text-white"
                             : "bg-slate-100 text-slate-600 border border-slate-200"
-                        }`}
+                          }`}
                       >
                         {opt.code}
                       </span>
@@ -183,7 +179,7 @@ export const ProgramSearchableSelect: React.FC<ProgramSearchableSelectProps> = (
           {/* Footer Info */}
           <div className="px-3 py-1.5 bg-slate-50 border-t border-slate-100 text-[10px] text-slate-400 font-bold flex items-center justify-between">
             <span>{filteredOptions.length} Program Tersedia</span>
-            <span className="text-[#0072CE]">PostgreSQL NEWS Sync</span>
+            <span className="text-[#0072CE]">NEWS Sync</span>
           </div>
         </div>
       )}

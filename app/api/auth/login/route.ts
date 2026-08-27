@@ -41,11 +41,11 @@ export async function POST(request: Request) {
 
     // 3. Auto-provision default admin if missing
     const userCheck = await pool.query("SELECT * FROM admin_users WHERE LOWER(username) = LOWER($1)", [cleanUsername]);
-    
+
     if (userCheck.rows.length === 0 && cleanUsername.toLowerCase() === "admin") {
       await pool.query(
         "INSERT INTO admin_users (username, password, nama, role) VALUES ($1, $2, $3, $4)",
-        ["admin", "admin", "Administrator SDM & Diklat", "admin"]
+        ["admin", "admin", "Administrator", "admin"]
       );
     }
 
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
         nama: user.nama || "Admin PLN",
         role: user.role || "admin",
       },
-      message: "Login admin berhasil dan tersinkronisasi ke database PostgreSQL.",
+      message: "Login admin berhasil dan tersinkronisasi ke database.",
     });
   } catch (error: unknown) {
     console.error("POST /api/auth/login error:", error);

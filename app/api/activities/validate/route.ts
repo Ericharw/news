@@ -91,10 +91,7 @@ export async function POST(request: Request) {
     const detectedGreyAreas: { keyword: string; field: string; category: string; ringkasan?: string }[] = [];
 
     const textToScan = [
-      { text: objekKegiatan || "", field: "Objek Kegiatan" },
-      { text: subjekKegiatan || "", field: "Subjek Kegiatan" },
-      { text: namaProgram || "", field: "Nama Program" },
-      { text: jenisBiaya || "", field: "Jenis Biaya" },
+      { text: objekKegiatan || subjekKegiatan || "", field: "Objek Kegiatan" },
     ];
 
     // Scan for NAC Keywords (Merah)

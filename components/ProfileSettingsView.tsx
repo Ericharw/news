@@ -122,7 +122,7 @@ export const ProfileSettingsView: React.FC = () => {
         await Swal.fire({
           icon: "success",
           title: "Password Berhasil Diperbarui!",
-          text: "Password Admin baru telah berhasil tersimpan di database PostgreSQL.",
+          text: "Password Admin baru telah berhasil tersimpan di database.",
           confirmButtonColor: "#0072CE",
           timer: 2000,
         });

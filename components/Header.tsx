@@ -138,13 +138,22 @@ export const Header: React.FC<HeaderProps> = ({
 
   const handleLogout = () => {
     setShowProfileDropdown(false);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("userRole");
+      localStorage.removeItem("adminSession");
+    }
     setUserRole("user");
     Swal.fire({
       icon: "success",
       title: "Logout Berhasil!",
       text: "Anda telah keluar dari mode Admin PT PLN (Persero).",
       confirmButtonColor: "#0072CE",
-      timer: 2000,
+      timer: 1500,
+      showConfirmButton: false,
+    }).then(() => {
+      if (typeof window !== "undefined") {
+        window.location.href = "/user-form";
+      }
     });
   };
 

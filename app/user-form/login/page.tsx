@@ -41,7 +41,7 @@ export default function AdminLoginPage() {
         await Swal.fire({
           icon: "success",
           title: "Login Admin Berhasil!",
-          text: "Login Anda telah diverifikasi & tersimpan di database PostgreSQL.",
+          text: "Login Anda telah diverifikasi & tersimpan di database.",
           confirmButtonColor: "#0072CE",
           timer: 2000,
         });
@@ -106,7 +106,7 @@ export default function AdminLoginPage() {
                 Administrator System
               </span>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-1.5">
-                Login Admin SDM
+                Login Admin
               </h1>
               <p className="text-slate-500 text-xs mt-1">
                 Masukkan username dan password untuk mengakses Master Data & Manajemen Kegiatan PLN.
@@ -126,7 +126,7 @@ export default function AdminLoginPage() {
           <form onSubmit={handleLogin} className="space-y-4 text-xs sm:text-sm">
             <div>
               <label className="block font-bold text-slate-800 mb-1.5">
-                Username Admin <span className="text-rose-500">*</span>
+                Username<span className="text-rose-500">*</span>
               </label>
               <div className="relative flex items-center">
                 <User className="w-4.5 h-4.5 text-slate-400 absolute left-3.5" />

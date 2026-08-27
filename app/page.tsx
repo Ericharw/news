@@ -27,31 +27,9 @@ interface HomeProps {
 }
 
 export default function Home({ initialRole, initialMenu }: HomeProps) {
-  // Navigation & Role State initialized from props & URL to prevent flash on refresh
-  const [userRole, setUserRole] = useState<UserRole>(() => {
-    if (initialRole) return initialRole;
-    if (typeof window !== "undefined") {
-      const p = window.location.pathname;
-      if (p === "/user-form" || p === "/") return "user";
-      if (p.startsWith("/data-kegiatan") || p.startsWith("/master-") || p === "/tambah-kegiatan") return "admin";
-    }
-    return "admin";
-  });
-
-  const [activeMenu, setActiveMenu] = useState<ActiveMenuType>(() => {
-    if (initialMenu) return initialMenu;
-    if (typeof window !== "undefined") {
-      const p = window.location.pathname;
-      if (p === "/user-form" || p === "/") return "user-form";
-      if (p === "/tambah-kegiatan") return "tambah-kegiatan";
-      if (p === "/data-kegiatan/profile") return "profile";
-      if (p.includes("master-program")) return "master-program";
-      if (p.includes("master-keyword")) return "master-keyword";
-      if (p.includes("master-jenis-biaya")) return "master-jenis-biaya";
-      if (p.includes("master-grey-area")) return "master-grey-area";
-    }
-    return "data-kegiatan";
-  });
+  // Navigation & Role State initialized deterministically from props to prevent hydration mismatch
+  const [userRole, setUserRole] = useState<UserRole>(initialRole || "user");
+  const [activeMenu, setActiveMenu] = useState<ActiveMenuType>(initialMenu || "user-form");
 
   const [isKegiatanOpen, setIsKegiatanOpen] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -134,27 +112,44 @@ export default function Home({ initialRole, initialMenu }: HomeProps) {
 
     const syncUrlMenu = () => {
       if (typeof window !== "undefined") {
+        const storedRole = localStorage.getItem("userRole");
         const path = window.location.pathname;
+
+        // Path /user-form or / (root) -> Always User role & User form without requiring login
         if (path === "/user-form" || path === "/") {
-          setActiveMenu("user-form");
           setUserRole("user");
+          setActiveMenu("user-form");
           if (path === "/") {
             window.history.replaceState(null, "", "/user-form");
           }
-        } else if (path === "/data-kegiatan/profile") {
-          setActiveMenu("profile");
-        } else if (path === "/tambah-kegiatan") {
-          setActiveMenu("tambah-kegiatan");
-        } else if (path === "/master-program" || path === "/master-program-edit") {
-          setActiveMenu("master-program");
-        } else if (path === "/master-keyword" || path === "/master-keyword-edit") {
-          setActiveMenu("master-keyword");
-        } else if (path === "/master-jenis-biaya" || path === "/master-jenis-biaya-edit") {
-          setActiveMenu("master-jenis-biaya");
-        } else if (path === "/master-grey-area" || path === "/master-grey-area-edit") {
-          setActiveMenu("master-grey-area");
-        } else if (path === "/data-kegiatan") {
-          setActiveMenu("data-kegiatan");
+          return;
+        }
+
+        // Admin paths (/data-kegiatan, /tambah-kegiatan, /master-*, /data-kegiatan/profile)
+        if (storedRole === "admin") {
+          setUserRole("admin");
+          if (path === "/data-kegiatan/profile") {
+            setActiveMenu("profile");
+          } else if (path === "/tambah-kegiatan") {
+            setActiveMenu("tambah-kegiatan");
+          } else if (path === "/master-program" || path === "/master-program-edit") {
+            setActiveMenu("master-program");
+          } else if (path === "/master-keyword" || path === "/master-keyword-edit") {
+            setActiveMenu("master-keyword");
+          } else if (path === "/master-jenis-biaya" || path === "/master-jenis-biaya-edit") {
+            setActiveMenu("master-jenis-biaya");
+          } else if (path === "/master-grey-area" || path === "/master-grey-area-edit") {
+            setActiveMenu("master-grey-area");
+          } else if (path === "/data-kegiatan") {
+            setActiveMenu("data-kegiatan");
+          }
+        } else {
+          // If accessing admin pages without login, direct to user form page
+          setUserRole("user");
+          setActiveMenu("user-form");
+          if (path !== "/user-form") {
+            window.history.replaceState(null, "", "/user-form");
+          }
         }
       }
     };

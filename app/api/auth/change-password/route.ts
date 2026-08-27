@@ -53,7 +53,7 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Password admin berhasil diperbarui di database PostgreSQL.",
+      message: "Password admin berhasil diperbarui di database.",
     });
   } catch (error: unknown) {
     console.error("PUT /api/auth/change-password error:", error);
