@@ -108,6 +108,9 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   const getPageTitle = () => {
+    if (activeMenu === "riwayat-user") {
+      return "Riwayat Input Kegiatan Pegawai";
+    }
     if (userRole === "user" || activeMenu === "user-form") {
       return "Portal Input Kegiatan & Diklat";
     }

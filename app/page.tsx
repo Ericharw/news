@@ -95,7 +95,7 @@ export default function Home({ initialRole, initialMenu }: HomeProps) {
     if (typeof window !== "undefined") {
       let path = "/data-kegiatan";
       if (menu === "tambah-kegiatan") path = "/tambah-kegiatan";
-      else if (menu === "user-form") path = "/user-form";
+      else if (menu === "user-form" || menu === "riwayat-user") path = "/user-form";
       else if (menu === "master-program") path = "/master-program";
       else if (menu === "master-keyword") path = "/master-keyword";
       else if (menu === "master-jenis-biaya") path = "/master-jenis-biaya";
@@ -372,7 +372,7 @@ export default function Home({ initialRole, initialMenu }: HomeProps) {
 
         {/* MAIN BODY AREA */}
         <main className="flex-1 p-3 sm:p-6 md:p-8 space-y-6 max-w-7xl w-full mx-auto overflow-x-hidden">
-          {userRole === "user" || activeMenu === "user-form" ? (
+          {userRole === "user" || activeMenu === "user-form" || activeMenu === "riwayat-user" ? (
             /* HALAMAN KHUSUS PEGAWAI PLN */
             <UserFormView
               formValues={formValues}
@@ -380,6 +380,9 @@ export default function Home({ initialRole, initialMenu }: HomeProps) {
               onSubmit={handleValidateAndPreview}
               onReset={handleResetForm}
               isValidating={isValidating}
+              activities={dataList}
+              onViewItem={(item) => setViewingItem(item)}
+              activeMenu={activeMenu}
             />
           ) : activeMenu === "master-program" ? (
 

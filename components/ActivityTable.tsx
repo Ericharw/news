@@ -15,8 +15,11 @@ interface ActivityTableProps {
   currentPage: number;
   setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
   onViewItem: (item: ActivityItem) => void;
-  onDeleteItem: (id: number) => void;
+  onDeleteItem?: (id: number) => void;
   onNavigateToAdd?: () => void;
+  title?: string;
+  subtitle?: string;
+  showExportExcel?: boolean;
 }
 
 export const ActivityTable: React.FC<ActivityTableProps> = ({
@@ -31,7 +34,10 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
   setCurrentPage,
   onViewItem,
   onDeleteItem,
-  onNavigateToAdd
+  onNavigateToAdd,
+  title,
+  subtitle,
+  showExportExcel = true
 }) => {
   const itemsPerPage = 10;
 
@@ -263,13 +269,13 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Data Kegiatan</h2>
+            <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">{title || "Data Kegiatan"}</h2>
             <span className="px-2.5 py-0.5 rounded-full bg-[#0072CE]/10 text-[#0072CE] text-xs font-bold">
               {filteredData.length} Item
             </span>
           </div>
           <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
-            Daftar seluruh kegiatan yang telah terdaftar.
+            {subtitle || "Daftar seluruh kegiatan yang telah terdaftar."}
           </p>
         </div>
 
@@ -335,14 +341,16 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
           </div>
 
           {/* Export Excel Button */}
-          <button
-            onClick={handleExportExcel}
-            className="flex items-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-xs border border-emerald-500 cursor-pointer shrink-0"
-            title="Export ke Excel"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            <span className="hidden sm:inline">Export Excel</span>
-          </button>
+          {showExportExcel && (
+            <button
+              onClick={handleExportExcel}
+              className="flex items-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-xs border border-emerald-500 cursor-pointer shrink-0"
+              title="Export ke Excel"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span className="hidden sm:inline">Export Excel</span>
+            </button>
+          )}
 
           {/* Add Activity Action Button */}
           {onNavigateToAdd && (
@@ -486,13 +494,15 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                         </button>
 
                         {/* Delete Action Icon */}
-                        <button
-                          onClick={() => onDeleteItem(row.id)}
-                          className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-600 text-rose-500 hover:text-white flex items-center justify-center transition-all shadow-2xs"
-                          title="Hapus"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {onDeleteItem && (
+                          <button
+                            onClick={() => onDeleteItem(row.id)}
+                            className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-600 text-rose-500 hover:text-white flex items-center justify-center transition-all shadow-2xs"
+                            title="Hapus"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

@@ -61,6 +61,7 @@ export type ActiveMenuType =
   | "master-jenis-biaya"
   | "master-grey-area"
   | "user-form"
+  | "riwayat-user"
   | "profile";
 
 

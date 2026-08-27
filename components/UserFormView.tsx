@@ -1,14 +1,20 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   CheckCircle2,
   HelpCircle,
   UserCheck,
-  AlertCircle
+  AlertCircle,
+  History,
+  Search,
+  Eye,
+  CalendarDays,
+  FileText
 } from "lucide-react";
 import { ActivityForm } from "@/components/ActivityForm";
-import { ActivityFormValues } from "@/types/activity";
+import { ActivityTable } from "@/components/ActivityTable";
+import { ActivityFormValues, ActivityItem, ActiveMenuType } from "@/types/activity";
 
 interface UserFormViewProps {
   formValues: ActivityFormValues;
@@ -16,6 +22,9 @@ interface UserFormViewProps {
   onSubmit: (e: React.FormEvent) => void;
   onReset: () => void;
   isValidating?: boolean;
+  activities?: ActivityItem[];
+  onViewItem?: (item: ActivityItem) => void;
+  activeMenu?: ActiveMenuType;
 }
 
 export const UserFormView: React.FC<UserFormViewProps> = ({
@@ -23,8 +32,100 @@ export const UserFormView: React.FC<UserFormViewProps> = ({
   setFormValues,
   onSubmit,
   onReset,
-  isValidating = false
+  isValidating = false,
+  activities,
+  onViewItem,
+  activeMenu
 }) => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterJenisBiaya, setFilterJenisBiaya] = useState("all");
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const [internalActivities, setInternalActivities] = useState<ActivityItem[]>([]);
+
+  useEffect(() => {
+    if (!activities) {
+      fetch("/api/activities")
+        .then((res) => res.json())
+        .then((json) => {
+          if (json.success && Array.isArray(json.data)) {
+            setInternalActivities(json.data);
+          }
+        })
+        .catch((err) => console.error("Error fetching activities for history:", err));
+    }
+  }, [activities]);
+
+  const historyList = activities || internalActivities;
+
+  const filteredHistory = useMemo(() => {
+    return historyList.filter((item) => {
+      const q = searchQuery.toLowerCase();
+      const matchesSearch =
+        item.namaProgram.toLowerCase().includes(q) ||
+        item.subjekKegiatan.toLowerCase().includes(q) ||
+        (item.objekKegiatan && item.objekKegiatan.toLowerCase().includes(q)) ||
+        item.jenisBiaya.toLowerCase().includes(q) ||
+        (item.batch && item.batch.toLowerCase().includes(q));
+
+      const matchesJenis =
+        filterJenisBiaya === "all" ? true : item.jenisBiaya === filterJenisBiaya;
+
+      return matchesSearch && matchesJenis;
+    });
+  }, [historyList, searchQuery, filterJenisBiaya]);
+
+  if (activeMenu === "riwayat-user") {
+    return (
+      <div className="space-y-6">
+        {/* Riwayat Top Welcome Banner */}
+        <div className="relative overflow-hidden bg-gradient-to-r from-[#003B70] via-[#0072CE] to-[#00A3E0] rounded-3xl p-6 sm:p-8 text-white shadow-xl">
+          {/* Background Decorative Polygons */}
+          <div className="absolute -right-10 -bottom-10 opacity-15 pointer-events-none">
+            <svg width="320" height="320" viewBox="0 0 200 200" fill="none">
+              <path d="M40 0 L200 160 L160 200 L0 40 Z" fill="#FFFFFF" />
+              <path d="M90 0 L200 110 L180 130 L70 0 Z" fill="#FFC72C" />
+            </svg>
+          </div>
+
+          <div className="relative z-10 max-w-3xl">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="px-3 py-1 bg-white/20 backdrop-blur-md text-white text-xs font-bold uppercase tracking-wider rounded-full border border-white/30 flex items-center gap-1.5">
+                <History className="w-3.5 h-3.5 text-[#FFC72C]" />
+                <span>Riwayat Pegawai PLN</span>
+              </span>
+            </div>
+
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white leading-tight">
+              Daftar Riwayat Input Kegiatan & Diklat
+            </h2>
+            <p className="text-sky-100 text-xs sm:text-sm mt-2 leading-relaxed font-medium max-w-2xl">
+              Halaman ini menampilkan seluruh riwayat pengajuan kegiatan yang telah diinputkan. Format tabel sama dengan Data Kegiatan untuk peninjauan cepat (Hak Akses: Mode Lihat).
+            </p>
+          </div>
+        </div>
+
+        {/* Tabel Format Sama Dengan Data Kegiatan (Tanpa Aksi Hapus & Export Excel) */}
+        <ActivityTable
+          filteredData={filteredHistory}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          filterJenisBiaya={filterJenisBiaya}
+          setFilterJenisBiaya={setFilterJenisBiaya}
+          showFilterDropdown={showFilterDropdown}
+          setShowFilterDropdown={setShowFilterDropdown}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          onViewItem={(item) => onViewItem && onViewItem(item)}
+          title="Riwayat Input Kegiatan"
+          subtitle="Daftar seluruh kegiatan yang disubmit pegawai (Mode Lihat Detail)."
+          showExportExcel={false}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* User Portal Top Welcome Banner */}
@@ -54,9 +155,9 @@ export const UserFormView: React.FC<UserFormViewProps> = ({
         </div>
       </div>
 
-      {/* Form & Guidelines Grid */}
+      {/* Form & Sidebar Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Main Form Section */}
+        {/* Main Form Section (Left Column) */}
         <div className="lg:col-span-7 xl:col-span-8">
           <ActivityForm
             formValues={formValues}
@@ -67,7 +168,7 @@ export const UserFormView: React.FC<UserFormViewProps> = ({
           />
         </div>
 
-        {/* User Help & Information Sidebar */}
+        {/* User Sidebar (Right Column) */}
         <div className="lg:col-span-5 xl:col-span-4 space-y-5">
           {/* Directives Card */}
           <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs">

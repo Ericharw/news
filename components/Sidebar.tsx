@@ -16,7 +16,8 @@ import {
   HelpCircle,
   UserCheck,
   FileEdit,
-  RefreshCw
+  RefreshCw,
+  History
 } from "lucide-react";
 import { ActiveMenuType, UserRole } from "@/types/activity";
 
@@ -128,13 +129,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 onClick={() => handleMenuClick("user-form")}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs transition-all ${
-                  activeMenu === "user-form" || activeMenu === "tambah-kegiatan"
+                  activeMenu === "user-form"
                     ? "bg-gradient-to-r from-[#0072CE] to-[#00A3E0] text-white shadow-md"
                     : "text-slate-700 hover:bg-slate-100"
                 }`}
               >
                 <FileEdit className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && <span>Form Input Kegiatan</span>}
+              </button>
+
+              <button
+                onClick={() => handleMenuClick("riwayat-user")}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs transition-all ${
+                  activeMenu === "riwayat-user"
+                    ? "bg-gradient-to-r from-[#0072CE] to-[#00A3E0] text-white shadow-md"
+                    : "text-slate-700 hover:bg-slate-100"
+                }`}
+              >
+                <History className="w-4 h-4 shrink-0" />
+                {!sidebarCollapsed && <span>Riwayat Input Kegiatan</span>}
               </button>
             </div>
           ) : (
