@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { ActivityForm } from "@/components/ActivityForm";
 import { ActivityTable } from "@/components/ActivityTable";
+import { ViewDetailModal } from "@/components/ViewDetailModal";
 import { ActivityFormValues, ActivityItem, ActiveMenuType } from "@/types/activity";
 
 interface UserFormViewProps {
@@ -43,10 +44,11 @@ export const UserFormView: React.FC<UserFormViewProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
 
   const [internalActivities, setInternalActivities] = useState<ActivityItem[]>([]);
+  const [viewingItem, setViewingItem] = useState<ActivityItem | null>(null);
 
   useEffect(() => {
     if (!activities) {
-      fetch("/api/activities")
+      fetch(activeMenu === "riwayat-user" ? "/api/activities?view=history" : "/api/activities")
         .then((res) => res.json())
         .then((json) => {
           if (json.success && Array.isArray(json.data)) {
@@ -55,7 +57,7 @@ export const UserFormView: React.FC<UserFormViewProps> = ({
         })
         .catch((err) => console.error("Error fetching activities for history:", err));
     }
-  }, [activities]);
+  }, [activities, activeMenu]);
 
   const historyList = activities || internalActivities;
 
@@ -117,11 +119,12 @@ export const UserFormView: React.FC<UserFormViewProps> = ({
           setShowFilterDropdown={setShowFilterDropdown}
           currentPage={currentPage}
           setCurrentPage={setCurrentPage}
-          onViewItem={(item) => onViewItem && onViewItem(item)}
+          onViewItem={(item) => onViewItem ? onViewItem(item) : setViewingItem(item)}
           title="Riwayat Input Kegiatan"
           subtitle="Daftar seluruh kegiatan yang disubmit pegawai (Mode Lihat Detail)."
           showExportExcel={false}
         />
+        <ViewDetailModal item={viewingItem} onClose={() => setViewingItem(null)} />
       </div>
     );
   }

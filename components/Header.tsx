@@ -13,6 +13,12 @@ interface HeaderProps {
   setUserRole: (role: UserRole) => void;
 }
 
+interface SessionUser {
+  username: string;
+  nama: string;
+  role: "ADMIN" | "PKU" | "JAR" | "K3L_KAM";
+}
+
 export const Header: React.FC<HeaderProps> = ({
   activeMenu,
   sidebarCollapsed,
@@ -21,6 +27,7 @@ export const Header: React.FC<HeaderProps> = ({
   setUserRole
 }) => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
 
   const [profileName, setProfileName] = useState("Admin PLN");
   const [profileEmail, setProfileEmail] = useState("admin.diklat@pln.co.id");
@@ -38,6 +45,15 @@ export const Header: React.FC<HeaderProps> = ({
         } catch (e) {}
       }
     }
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/auth/session", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((result: { success?: boolean; data?: SessionUser | null }) => {
+        if (result.success && result.data) setSessionUser(result.data);
+      })
+      .catch(() => undefined);
   }, []);
 
   // Change Password State
@@ -133,18 +149,24 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
+  const isLoggedIn = userRole === "admin" || Boolean(sessionUser);
+  const displayName = sessionUser?.nama || profileName;
+  const displayRole = sessionUser?.role || "ADMIN";
+  const displayRoleLabel = displayRole === "K3L_KAM" ? "K3L & KAM" : displayRole;
+
   const handleToggleRole = () => {
     if (typeof window !== "undefined") {
       window.location.href = "/user-form/login";
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setShowProfileDropdown(false);
     if (typeof window !== "undefined") {
       localStorage.removeItem("userRole");
       localStorage.removeItem("adminSession");
     }
+    await fetch("/api/auth/logout", { method: "POST" });
     setUserRole("user");
     Swal.fire({
       icon: "success",
@@ -201,7 +223,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Profile / Admin Login Container */}
         <div className="relative border-l border-slate-200 pl-3 sm:pl-5">
-          {userRole === "user" ? (
+          {!isLoggedIn ? (
             <button
               onClick={handleToggleRole}
               className="flex items-center gap-2 px-4 py-2 bg-[#0072CE] hover:bg-[#005bb5] text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md transition-all cursor-pointer border border-[#00A3E0]/30"
@@ -220,10 +242,10 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
               <div className="hidden sm:block">
                 <div className="text-xs font-extrabold text-slate-900 leading-tight flex items-center gap-1">
-                  <span>{profileName}</span>
+                  <span>{displayName}</span>
                 </div>
                 <div className="text-[11px] font-medium text-slate-500">
-                  {profileJabatan || "Administrator SDM"}
+                  {sessionUser ? displayRoleLabel : (profileJabatan || "Administrator SDM")}
                 </div>
               </div>
               <ChevronDown className={`w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-transform duration-200 ${showProfileDropdown ? "rotate-180 text-[#0072CE]" : ""}`} />
@@ -231,7 +253,7 @@ export const Header: React.FC<HeaderProps> = ({
           )}
 
           {/* Profile Dropdown Menu */}
-          {showProfileDropdown && userRole === "admin" && (
+          {showProfileDropdown && isLoggedIn && (
             <div className="absolute right-0 mt-3 w-64 bg-white border border-slate-200/90 rounded-2xl shadow-2xl z-50 p-2 border-t-4 border-t-[#0072CE] animate-in fade-in zoom-in-95">
               {/* Header Info */}
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 mb-1">
@@ -241,16 +263,16 @@ export const Header: React.FC<HeaderProps> = ({
                   </div>
                   <div>
                     <div className="text-xs font-black text-slate-900 truncate max-w-[150px]">
-                      {profileName}
+                      {displayName}
                     </div>
                     <div className="text-[10px] text-slate-500 truncate max-w-[150px]">
-                      {profileEmail}
+                      {sessionUser ? `${sessionUser.username} • ${displayRoleLabel}` : profileEmail}
                     </div>
                   </div>
                 </div>
                 <div className="mt-2.5 flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border w-fit text-emerald-700 bg-emerald-50 border-emerald-200">
                   <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                  <span>{profileJabatan}</span>
+                  <span>{sessionUser ? displayRoleLabel : profileJabatan}</span>
                 </div>
               </div>
 
@@ -259,7 +281,9 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   onClick={() => {
                     setShowProfileDropdown(false);
-                    if (typeof window !== "undefined") {
+                    if (sessionUser && sessionUser.role !== "ADMIN") {
+                      Swal.fire({ icon: "info", title: "Profil Pengguna", text: "Pengaturan profil pengguna tersedia melalui administrator.", confirmButtonColor: "#0072CE" });
+                    } else if (typeof window !== "undefined") {
                       window.location.href = "/data-kegiatan/profile";
                     }
                   }}

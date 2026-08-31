@@ -46,7 +46,7 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
   };
 
   const handleOpenCalendar = () => {
-    const el = datePickerRef.current as any;
+    const el = datePickerRef.current as (HTMLInputElement & { showPicker?: () => void }) | null;
     if (el) {
       try {
         if (typeof el.showPicker === "function") {
@@ -167,7 +167,7 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
             <button
               type="button"
               onClick={handleOpenCalendar}
-              className="absolute right-1.5 p-1.5 text-slate-400 hover:text-[#0072CE] hover:bg-sky-50 rounded-lg transition-all cursor-pointer"
+              className="absolute right-1.5 z-10 p-1.5 text-slate-400 hover:text-[#0072CE] hover:bg-sky-50 rounded-lg transition-all cursor-pointer"
               title="Buka Kalender"
             >
               <Calendar className="w-4.5 h-4.5 text-slate-500 hover:text-[#0072CE]" />
@@ -178,7 +178,7 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
               ref={datePickerRef}
               type="date"
               onChange={handleDatePickerChange}
-              className="opacity-0 absolute right-0 bottom-0 pointer-events-none w-0 h-0"
+              className="opacity-0 absolute right-0 top-0 z-0 w-10 h-full pointer-events-none"
               tabIndex={-1}
             />
           </div>

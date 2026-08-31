@@ -2,12 +2,10 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { Lock, User, KeyRound, ShieldCheck, ArrowLeft, Zap, AlertCircle, RefreshCw, Eye, EyeOff } from "lucide-react";
+import { User, KeyRound, ShieldCheck, Zap, AlertCircle, RefreshCw, Eye, EyeOff } from "lucide-react";
 import Swal from "sweetalert2";
 
-export default function AdminLoginPage() {
-  const router = useRouter();
+export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -34,21 +32,20 @@ export default function AdminLoginPage() {
 
       if (json.success) {
         if (typeof window !== "undefined") {
-          localStorage.setItem("userRole", "admin");
           localStorage.setItem("adminSession", JSON.stringify(json.data));
         }
 
         await Swal.fire({
           icon: "success",
-          title: "Login Admin Berhasil!",
-          text: "Login Anda telah diverifikasi & tersimpan di database.",
+          title: "Login Berhasil!",
+          text: `Selamat datang, ${json.data.nama}.`,
           confirmButtonColor: "#0072CE",
           timer: 2000,
         });
 
-        window.location.href = "/data-kegiatan";
+        window.location.href = json.data.role === "ADMIN" ? "/dashboard" : "/user-form";
       } else {
-        setErrorMsg(json.error || "Username atau password admin tidak valid.");
+        setErrorMsg(json.error || "Username atau password tidak valid.");
       }
     } catch (err: unknown) {
       console.error("Login Error:", err);
@@ -65,21 +62,7 @@ export default function AdminLoginPage() {
       <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-[#00A3E0]/15 rounded-full blur-3xl pointer-events-none" />
 
       {/* Top Header Logo */}
-      <div className="w-full max-w-md flex items-center justify-between pt-4 pb-2 z-10">
-        <button
-          onClick={() => {
-            if (typeof window !== "undefined") {
-              window.location.href = "/user-form";
-            } else {
-              router.push("/user-form");
-            }
-          }}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 text-xs font-bold shadow-2xs hover:bg-slate-50 transition-all"
-        >
-          <ArrowLeft className="w-4 h-4 text-[#0072CE]" />
-          <span>Kembali ke Form Input</span>
-        </button>
-
+      <div className="w-full max-w-md flex items-center justify-end pt-4 pb-2 z-10">
         <div className="flex items-center gap-1.5 text-xs font-black text-[#0072CE]">
           <Zap className="w-4 h-4 text-[#FFC72C] fill-[#FFC72C]" />
           <span>NEWS PLN</span>
@@ -103,13 +86,13 @@ export default function AdminLoginPage() {
             </div>
             <div>
               <span className="px-2.5 py-0.5 rounded-md bg-[#0072CE]/10 text-[#0072CE] text-[10px] font-black uppercase tracking-wider border border-[#0072CE]/20">
-                Administrator System
+                NEWS PLN Authentication
               </span>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-1.5">
-                Login Admin
+                Login ke Sistem NEWS PLN
               </h1>
               <p className="text-slate-500 text-xs mt-1">
-                Masukkan username dan password untuk mengakses Master Data & Manajemen Kegiatan PLN.
+                Masukkan username dan password untuk melanjutkan ke layanan NEWS PLN sesuai hak akses Anda.
               </p>
             </div>
           </div>
@@ -179,7 +162,7 @@ export default function AdminLoginPage() {
               ) : (
                 <>
                   <ShieldCheck className="w-4 h-4 text-[#FFC72C]" />
-                  <span>Login Administrator</span>
+                  <span>Login ke NEWS PLN</span>
                 </>
               )}
             </button>

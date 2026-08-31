@@ -395,6 +395,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
         "Objek Kegiatan": item.objekKegiatan || "-",
         "Jenis Biaya": item.jenisBiaya,
         "Tanggal": formatTanggal2Digit(item.tanggalAwal),
+        "Input Oleh": item.createdByUsername ? `${item.createdByUsername} (${item.createdByRole || "-"})` : "-",
         "Ringkasan Isi Form": getRingkasanSingkatan(item),
         "Keyword NAC": isRed ? redNoteText || "Terdeteksi NAC" : "",
         "Aman": isSafe ? "Aman" : "",
@@ -722,6 +723,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
               <th className="py-3 px-2 sm:px-3">Jenis Biaya</th>
               <th className="py-3 px-2 sm:px-3">Tanggal</th>
               <th className="py-3 px-2 sm:px-3">Ringkasan Isi Form</th>
+              <th className="py-3 px-2 sm:px-3">Input Oleh</th>
               <th className="py-3 px-2 sm:px-3">Status NAC</th>
               <th className="py-3 px-2 sm:px-3 text-center w-20">Aksi</th>
             </tr>
@@ -729,7 +731,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
           <tbody className="divide-y divide-slate-100 text-slate-700 bg-white">
             {paginatedData.length === 0 ? (
               <tr>
-                <td colSpan={9} className="py-12 text-center text-slate-400">
+                <td colSpan={10} className="py-12 text-center text-slate-400">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Search className="w-8 h-8 text-slate-300 stroke-[1.5]" />
                     <div className="font-semibold text-slate-600">Tidak ada data kegiatan ditemukan.</div>
@@ -779,6 +781,11 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                       >
                         <span className="line-clamp-2 leading-tight">{getRingkasanSingkatan(row)}</span>
                       </div>
+                    </td>
+
+                    <td className="py-3 px-2 sm:px-3 text-xs">
+                      <div className="font-bold text-slate-700">{row.createdByUsername || "-"}</div>
+                      <div className="text-[10px] text-slate-400">{row.createdByRole || "-"}</div>
                     </td>
 
                     {/* Status NAC Column */}

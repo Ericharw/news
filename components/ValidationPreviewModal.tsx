@@ -20,6 +20,7 @@ interface ValidationPreviewModalProps {
   onClose: () => void;
   onConfirmSubmit: () => void | Promise<boolean>;
   isSubmitting?: boolean;
+  showSubmittedSummary?: boolean;
 }
 
 const formatTanggal2Digit = (tanggal: string) => {
@@ -90,13 +91,15 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
   formValues,
   onClose,
   onConfirmSubmit,
-  isSubmitting = false
+  isSubmitting = false,
+  showSubmittedSummary = false
 }) => {
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [masterJenisBiayaMap, setMasterJenisBiayaMap] = useState<Record<string, string>>({});
   const [showSummary, setShowSummary] = useState(false);
   const [submittedSummary, setSubmittedSummary] = useState("");
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   useEffect(() => {
     fetch("/api/master/jenis-biaya")
@@ -133,6 +136,7 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
     if (!isOpen) {
       setShowSummary(false);
       setSubmittedSummary("");
+      setIsSubmitted(false);
     }
   }, [isOpen]);
 
@@ -169,6 +173,49 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
     URL.revokeObjectURL(url);
     setSaved(true);
   };
+
+  if (isSubmitted && showSubmittedSummary) {
+    return (
+      <div className="fixed inset-0 z-50 bg-slate-900/65 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+        <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-100">
+          <div className="bg-gradient-to-r from-[#003B70] to-[#0072CE] rounded-2xl p-4 sm:p-5 border border-[#00A3E0]/30 shadow-md">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[10px] font-extrabold text-[#FFC72C] uppercase tracking-wider flex items-center gap-1.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#FFC72C]" />
+                Ringkasan Isi Form
+              </span>
+            </div>
+            <div className="bg-white/10 rounded-xl px-3 py-2.5 mb-3 border border-white/20">
+              <p className="text-white font-black text-sm sm:text-base tracking-wide break-all leading-relaxed select-all">
+                {submittedSummary || ringkasan}
+              </p>
+            </div>
+            <p className="text-sky-200 text-[10px] font-medium mb-3 leading-relaxed">
+              Silakan salin ringkasan ini sebagai bukti input kegiatan, lalu tekan OK untuk menutup.
+            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleCopy}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border shadow-xs ${copied ? "bg-emerald-500 border-emerald-400 text-white" : "bg-white/20 hover:bg-white/30 border-white/30 text-white"}`}
+              >
+                {copied ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copied ? "Tersalin!" : "Salin Ringkasan"}</span>
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[#FFC72C] hover:bg-[#F2B81A] border border-amber-300 text-slate-900 shadow-xs transition-all cursor-pointer"
+              >
+                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>OK</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/65 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
@@ -366,16 +413,22 @@ export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
             onClick={async () => {
               const submitted = await onConfirmSubmit();
               if (submitted !== false) {
-                await Swal.fire({
-                  icon: "success",
-                  title: "Ringkasan Isi Form",
-                  text: ringkasan,
-                  confirmButtonText: "OK",
-                  confirmButtonColor: "#0072CE",
-                });
+                if (showSubmittedSummary) {
+                  setSubmittedSummary(ringkasan);
+                  setShowSummary(true);
+                  setIsSubmitted(true);
+                } else {
+                  await Swal.fire({
+                    icon: "success",
+                    title: "Ringkasan Isi Form",
+                    text: ringkasan,
+                    confirmButtonText: "OK",
+                    confirmButtonColor: "#0072CE",
+                  });
+                }
               }
             }}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isSubmitted}
             className={`w-full sm:w-auto px-6 py-2.5 font-black rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50 ${
               hasRed
                 ? "bg-rose-600 hover:bg-rose-700 text-white border border-rose-500"

@@ -42,7 +42,7 @@ function AdminShell({ activeMenu, children }: { activeMenu: ActiveMenuType; chil
   };
 
   return (
-    <div className="min-h-screen flex bg-[#F1F5F9] text-slate-800 font-sans">
+    <div className="admin-shell min-h-screen flex bg-[#F1F5F9] text-slate-800 font-sans">
       <Sidebar activeMenu={activeMenu} setActiveMenu={navigate} isKegiatanOpen={isKegiatanOpen} setIsKegiatanOpen={setIsKegiatanOpen} sidebarCollapsed={sidebarCollapsed} userRole="admin" setUserRole={() => undefined} />
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
         <Header activeMenu={activeMenu} sidebarCollapsed={sidebarCollapsed} setSidebarCollapsed={setSidebarCollapsed} userRole="admin" setUserRole={() => undefined} />
@@ -123,7 +123,7 @@ function AdminDataKegiatan() {
   };
 
   return (
-    <div className="min-h-screen flex bg-[#F1F5F9] text-slate-800 font-sans">
+    <div className="admin-shell min-h-screen flex bg-[#F1F5F9] text-slate-800 font-sans">
       <Sidebar activeMenu="data-kegiatan" setActiveMenu={navigate} isKegiatanOpen={isKegiatanOpen} setIsKegiatanOpen={setIsKegiatanOpen} sidebarCollapsed={sidebarCollapsed} userRole="admin" setUserRole={() => undefined} />
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
         <Header activeMenu="data-kegiatan" sidebarCollapsed={sidebarCollapsed} setSidebarCollapsed={setSidebarCollapsed} userRole="admin" setUserRole={() => undefined} />
@@ -201,15 +201,21 @@ function AdminRoutePage({ menu }: { menu: ActiveMenuType }) {
 }
 
 function UserInputPage() {
-  const [formValues, setFormValues] = useState({ namaProgram: "", subjekKegiatan: "", jenisBiaya: "", objekKegiatan: "", tanggalAwal: "", batch: "" });
+  const [formValues, setFormValues] = useState<ActivityFormValues>({ namaProgram: "", subjekKegiatan: "", jenisBiaya: "", objekKegiatan: "", tanggalAwal: "", batch: "" });
   const [isValidating, setIsValidating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSafe, setIsSafe] = useState(true);
+  const [detectedKeywords, setDetectedKeywords] = useState<{ keyword: string; field: string; category: string }[]>([]);
+  const [detectedGreyAreas, setDetectedGreyAreas] = useState<{ keyword: string; field: string; category: string; ringkasan?: string }[]>([]);
   const [activeMenu, setActiveMenu] = useState<ActiveMenuType>("user-form");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isKegiatanOpen, setIsKegiatanOpen] = useState(true);
 
   const resetForm = () => setFormValues({ namaProgram: "", subjekKegiatan: "", jenisBiaya: "", objekKegiatan: "", tanggalAwal: "", batch: "" });
 
-  const submitForm = async (event: React.FormEvent) => {
+  const validateForm = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!formValues.namaProgram || !formValues.subjekKegiatan || !formValues.jenisBiaya) {
       await Swal.fire({ icon: "warning", title: "Input Tidak Lengkap", text: "Harap lengkapi kolom yang wajib diisi.", confirmButtonColor: "#0072CE" });
@@ -221,19 +227,43 @@ function UserInputPage() {
       const validationResponse = await fetch("/api/activities/validate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formValues) });
       const validation = await validationResponse.json();
       if (!validation.success) throw new Error(validation.error || "Validasi gagal.");
+      setIsSafe(validation.statusVal === "AMAN");
+      setDetectedKeywords(validation.detectedKeywords || []);
+      setDetectedGreyAreas(validation.detectedGreyAreas || []);
       const statusNac = validation.statusVal || "AMAN";
       const redNotes = (validation.detectedKeywords || []).map((item: { keyword: string; field: string; category: string }) => `[Merah] Kata "${item.keyword}" pada ${item.field} (${item.category})`).join("; ");
       const greyNotes = (validation.detectedGreyAreas || []).map((item: { keyword: string; field: string; category: string; ringkasan?: string }) => `[Grey Area] Transaksi "${item.keyword}" pada ${item.field}: ${item.ringkasan || item.category || "Grey Area"}`).join("; ");
       const catatanNac = [redNotes, greyNotes].filter(Boolean).join(" | ");
-      const response = await fetch("/api/activities", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...formValues, statusNac, catatanNac }) });
-      const result = await response.json();
-      if (!result.success) throw new Error(result.error || "Data gagal disimpan.");
-      resetForm();
-      await Swal.fire({ icon: "success", title: "Berhasil Menyimpan Data", text: "Laporan kegiatan berhasil dikirim.", confirmButtonColor: "#0072CE", timer: 2200 });
+      setFormValues((current) => ({ ...current, statusNac, catatanNac }));
+      setIsPreviewOpen(true);
     } catch (error) {
-      await Swal.fire({ icon: "error", title: "Gagal Menyimpan Data", text: error instanceof Error ? error.message : "Terjadi kesalahan.", confirmButtonColor: "#e11d48" });
+      await Swal.fire({ icon: "error", title: "Gagal Validasi", text: error instanceof Error ? error.message : "Terjadi kesalahan.", confirmButtonColor: "#e11d48" });
     } finally {
       setIsValidating(false);
+    }
+  };
+
+  const confirmSubmit = async (): Promise<boolean> => {
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("/api/activities", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formValues) });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error || "Data gagal disimpan.");
+      setIsSubmitted(true);
+      return true;
+    } catch (error) {
+      await Swal.fire({ icon: "error", title: "Gagal Menyimpan Data", text: error instanceof Error ? error.message : "Terjadi kesalahan.", confirmButtonColor: "#e11d48" });
+      return false;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const closePreview = () => {
+    setIsPreviewOpen(false);
+    if (isSubmitted) {
+      setIsSubmitted(false);
+      resetForm();
     }
   };
 
@@ -247,10 +277,11 @@ function UserInputPage() {
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
         <Header activeMenu={activeMenu} sidebarCollapsed={sidebarCollapsed} setSidebarCollapsed={setSidebarCollapsed} userRole="user" setUserRole={() => undefined} />
         <main className="flex-1 p-3 sm:p-6 md:p-8 space-y-6 max-w-7xl w-full mx-auto overflow-x-hidden">
-          <UserFormView formValues={formValues} setFormValues={setFormValues} onSubmit={submitForm} onReset={resetForm} isValidating={isValidating} activeMenu={activeMenu} />
+          <UserFormView formValues={formValues} setFormValues={setFormValues} onSubmit={validateForm} onReset={resetForm} isValidating={isValidating} activeMenu={activeMenu} />
         </main>
         <Footer />
       </div>
+      <ValidationPreviewModal isOpen={isPreviewOpen} isSafe={isSafe} detectedKeywords={detectedKeywords} detectedGreyAreas={detectedGreyAreas} formValues={formValues} onClose={closePreview} onConfirmSubmit={confirmSubmit} isSubmitting={isSubmitting} showSubmittedSummary />
     </div>
   );
 }

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import pool from "@/lib/db";
+import { readSession, SESSION_COOKIE } from "@/lib/auth";
 import { getMemoryActivities, setMemoryActivities } from "@/app/api/activities/route";
 
 // DELETE /api/activities/[id] - Delete activity by ID
@@ -8,6 +10,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = readSession((await cookies()).get(SESSION_COOKIE)?.value);
+    if (!session || session.role !== "ADMIN") return NextResponse.json({ success: false, error: "Akses ditolak." }, { status: 403 });
     const { id } = await params;
     const activityId = parseInt(id, 10);
 

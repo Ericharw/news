@@ -34,7 +34,6 @@ export function LandingPage() {
           <span>{activeSlide + 1} / {slides.length}</span>
           <button type="button" aria-label="Slide berikutnya" onClick={() => moveSlide(1)}><ArrowRight size={16} /></button>
         </div>
-        <div className="image-carousel-cta"><Link href="/user-form">Mulai Input Kegiatan <ArrowRight size={16} /></Link></div>
       </section>
     </main>
   );

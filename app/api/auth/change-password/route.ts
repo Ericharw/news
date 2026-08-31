@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import pool from "@/lib/db";
+import { readSession, SESSION_COOKIE } from "@/lib/auth";
 
 export async function PUT(request: Request) {
   try {
+    const session = readSession((await cookies()).get(SESSION_COOKIE)?.value);
+    if (!session || session.role !== "ADMIN") return NextResponse.json({ success: false, error: "Akses ditolak." }, { status: 403 });
     const body = await request.json();
     const { username, oldPassword, newPassword } = body;
 

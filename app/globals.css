@@ -95,6 +95,19 @@
 .image-carousel-page .image-carousel-cta p { display: none; }
 @media (max-width: 800px) { .image-carousel-page .image-carousel { padding: 0 10px 12px; }.image-carousel-page .image-frame { margin: 0 auto 10px; }.image-carousel-page .image-frame img { max-height: calc(100vh - 190px); } }
 
+.admin-shell { position: relative; isolation: isolate; background: linear-gradient(135deg, #eef5fa 0%, #f7fafc 48%, #fff9e8 100%); }
+.admin-shell::before { content: ""; position: fixed; inset: 0 0 auto; height: 4px; z-index: 40; pointer-events: none; background: linear-gradient(90deg, #0072ce 0 68%, #ffc72c 68% 82%, #00a3e0 82%); }
+.admin-shell aside { background: rgba(255,255,255,.94); border-right-color: #cfe0eb; box-shadow: 8px 0 24px #23628d0d; }
+.admin-shell aside > div:first-child > div:first-child { border-bottom: 3px solid #ffc72c; background: linear-gradient(135deg, #fff 0%, #f3faff 100%); }
+.admin-shell header { background: rgba(255,255,255,.9); border-bottom-color: #cfe0eb; box-shadow: 0 8px 24px #23628d12; }
+.admin-shell main { position: relative; }
+.admin-shell main::before { content: ""; position: absolute; top: 18px; right: 24px; width: 150px; height: 70px; pointer-events: none; opacity: .5; background: repeating-linear-gradient(135deg, transparent 0 18px, #0072ce16 18px 20px, transparent 20px 38px); clip-path: polygon(28% 0, 100% 0, 72% 100%, 0 100%); }
+.admin-shell main > .bg-white { border-color: #cbdfea; box-shadow: 0 14px 30px #23628d14; }
+.admin-shell main > .bg-white:hover { border-color: #91c6df; }
+.admin-shell main table thead tr { background: linear-gradient(90deg, #eaf5fc, #fff8df); color: #123e70; }
+.admin-shell main table tbody tr:hover { box-shadow: inset 4px 0 0 #ffc72c; }
+.admin-shell main input:focus, .admin-shell main select:focus, .admin-shell main textarea:focus { border-color: #00a3e0; box-shadow: 0 0 0 3px #00a3e01c; }
+
 .image-carousel-page { background: radial-gradient(circle at 8% 24%, #d9f2ed, transparent 28%), radial-gradient(circle at 92% 70%, #fff0c9, transparent 25%), #f3f8f6; color: #173b4f; }
 .image-carousel-page .landing-header { background: rgba(250,253,251,.94); box-shadow: 0 4px 20px #376f6820; }
 .image-carousel-page .landing-login-button { background: #0072ce; }

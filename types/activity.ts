@@ -11,6 +11,9 @@ export interface ActivityItem {
   batch: string;
   statusNac?: "AMAN" | "TERDETEKSI_NAC" | "GREY_AREA";
   catatanNac?: string;
+  createdBy?: string;
+  createdByUsername?: string;
+  createdByRole?: string;
 }
 
 export interface ActivityFormValues {
