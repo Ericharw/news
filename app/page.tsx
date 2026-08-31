@@ -19,6 +19,7 @@ import { LandingPage } from "@/components/LandingPage";
 import { ViewDetailModal } from "@/components/ViewDetailModal";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { ValidationPreviewModal } from "@/components/ValidationPreviewModal";
+import { DashboardView } from "@/components/DashboardView";
 
 interface HomeProps {
   initialRole?: UserRole;
@@ -30,6 +31,7 @@ function AdminShell({ activeMenu, children }: { activeMenu: ActiveMenuType; chil
   const [isKegiatanOpen, setIsKegiatanOpen] = useState(true);
   const navigate = (menu: ActiveMenuType) => {
     const paths: Partial<Record<ActiveMenuType, string>> = {
+      dashboard: "/dashboard",
       "data-kegiatan": "/data-kegiatan",
       "tambah-kegiatan": "/tambah-kegiatan",
       "master-program": "/master-program",
@@ -111,6 +113,7 @@ function AdminDataKegiatan() {
 
   const navigate = (menu: ActiveMenuType) => {
     const paths: Partial<Record<ActiveMenuType, string>> = {
+      dashboard: "/dashboard",
       "data-kegiatan": "/data-kegiatan",
       "tambah-kegiatan": "/tambah-kegiatan",
       "master-program": "/master-program",
@@ -191,6 +194,7 @@ function AdminRoutePage({ menu }: { menu: ActiveMenuType }) {
     }
   };
 
+  if (menu === "dashboard") return <AdminShell activeMenu={menu}><DashboardView /></AdminShell>;
   if (menu === "data-kegiatan") return <AdminDataKegiatan />;
   if (menu === "master-program") return <AdminShell activeMenu={menu}><MasterProgramView /></AdminShell>;
   if (menu === "master-keyword") return <AdminShell activeMenu={menu}><MasterKeywordView /></AdminShell>;

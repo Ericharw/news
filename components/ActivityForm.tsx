@@ -184,6 +184,7 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
           </div>
         </div>
 
+
         {/* Form Actions */}
         <div className="pt-3 flex items-center justify-end gap-3">
           <button

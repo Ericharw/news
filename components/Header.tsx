@@ -132,6 +132,8 @@ export const Header: React.FC<HeaderProps> = ({
     }
 
     switch (activeMenu) {
+      case "dashboard":
+        return "Dashboard Statistik & Monitoring";
       case "data-kegiatan":
         return "Data Kegiatan & Diklat";
       case "tambah-kegiatan":
@@ -142,6 +144,8 @@ export const Header: React.FC<HeaderProps> = ({
         return "Master Keyword Non-Allowable Cost (NAC)";
       case "master-jenis-biaya":
         return "Master Jenis Biaya PLN";
+      case "master-grey-area":
+        return "Master Grey Area Transaksi";
       case "profile":
         return "Pengaturan Profil Administrator";
       default:

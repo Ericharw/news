@@ -8,6 +8,7 @@ export interface ActivityItem {
   jenisBiaya: JenisBiayaType;
   objekKegiatan?: string;
   tanggalAwal: string;
+  createdAt?: string;
   batch: string;
   statusNac?: "AMAN" | "TERDETEKSI_NAC" | "GREY_AREA";
   catatanNac?: string;
@@ -57,6 +58,7 @@ export interface MasterGreyAreaItem {
 export type UserRole = "admin" | "user";
 
 export type ActiveMenuType =
+  | "dashboard"
   | "data-kegiatan"
   | "tambah-kegiatan"
   | "master-program"

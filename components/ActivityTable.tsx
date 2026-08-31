@@ -47,6 +47,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
   const [filterNamaProgram, setFilterNamaProgram] = useState("all");
   const [filterTanggalOption, setFilterTanggalOption] = useState("all"); // 'all' | '1hari' | '1minggu' | '1bulan' | '1tahun' | 'custom'
   const [filterTanggalCustom, setFilterTanggalCustom] = useState("");
+  const [filterTanggalCustomEnd, setFilterTanggalCustomEnd] = useState("");
   const [filterStatusNac, setFilterStatusNac] = useState("all");
 
   const [filterOptions, setFilterOptions] = useState<string[]>([
@@ -126,22 +127,33 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
     return isNaN(d.getTime()) ? null : d;
   };
 
-  const matchDateRange = (tanggalItem: string, option: string, customDate: string) => {
-    if (option === "all" && !customDate) return true;
+  const matchDateRange = (tanggalItem: string, option: string, customDate: string, customDateEnd: string) => {
+    if (option === "all" && !customDate && !customDateEnd) return true;
 
-    if (option === "custom" || (option === "all" && customDate)) {
-      if (!customDate) return true;
+    if (option === "custom") {
+      if (!customDate && !customDateEnd) return true;
       if (!tanggalItem) return false;
-      const [fy, fm, fd] = customDate.split("-");
-      const shortYear = fy.slice(-2);
-      if (tanggalItem.includes(customDate)) return true;
-      if (tanggalItem.includes(`${fd}/${fm}/${fy}`)) return true;
-      if (tanggalItem.includes(`${fd}/${fm}/${shortYear}`)) return true;
 
-      const d = parseItemDate(tanggalItem);
-      if (!d) return false;
-      const [cy, cm, cd] = customDate.split("-").map((v) => parseInt(v, 10));
-      return d.getFullYear() === cy && d.getMonth() === cm - 1 && d.getDate() === cd;
+      const itemDate = parseItemDate(tanggalItem);
+      if (!itemDate) return false;
+
+      const startDate = customDate ? parseItemDate(customDate) : null;
+      const endDate = customDateEnd ? parseItemDate(customDateEnd) : null;
+
+      if (startDate && itemDate < startDate) return false;
+      if (endDate && itemDate > endDate) return false;
+      return true;
+    }
+
+    if (option === "all" && (customDate || customDateEnd)) {
+      const itemDate = parseItemDate(tanggalItem);
+      if (!itemDate) return false;
+
+      const selectedDate = customDate || customDateEnd;
+      const selected = parseItemDate(selectedDate);
+      if (!selected) return true;
+
+      return itemDate.getFullYear() === selected.getFullYear() && itemDate.getMonth() === selected.getMonth() && itemDate.getDate() === selected.getDate();
     }
 
     const itemDate = parseItemDate(tanggalItem);
@@ -209,17 +221,17 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
           ? true
           : item.jenisBiaya.toLowerCase().trim() === filterJenisBiaya.toLowerCase().trim();
 
-      const matchTgl = matchDateRange(item.tanggalAwal, filterTanggalOption, filterTanggalCustom);
+      const matchTgl = matchDateRange(item.tanggalAwal, filterTanggalOption, filterTanggalCustom, filterTanggalCustomEnd);
 
       const matchNac = matchStatusNac(item, filterStatusNac);
 
       return matchProgram && matchJenis && matchTgl && matchNac;
     });
-  }, [filteredData, filterNamaProgram, filterJenisBiaya, filterTanggalOption, filterTanggalCustom, filterStatusNac]);
+  }, [filteredData, filterNamaProgram, filterJenisBiaya, filterTanggalOption, filterTanggalCustom, filterTanggalCustomEnd, filterStatusNac]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, filterNamaProgram, filterJenisBiaya, filterTanggalOption, filterTanggalCustom, filterStatusNac, setCurrentPage]);
+  }, [searchQuery, filterNamaProgram, filterJenisBiaya, filterTanggalOption, filterTanggalCustom, filterTanggalCustomEnd, filterStatusNac, setCurrentPage]);
 
   const totalPages = Math.ceil(finalFilteredData.length / itemsPerPage) || 1;
   const paginatedData = useMemo(() => {
@@ -230,7 +242,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
   const activeFiltersCount =
     (filterNamaProgram !== "all" ? 1 : 0) +
     (filterJenisBiaya !== "all" ? 1 : 0) +
-    (filterTanggalOption !== "all" || filterTanggalCustom !== "" ? 1 : 0) +
+    (filterTanggalOption !== "all" || filterTanggalCustom !== "" || filterTanggalCustomEnd !== "" ? 1 : 0) +
     (filterStatusNac !== "all" ? 1 : 0);
 
   const hasActiveFilters = activeFiltersCount > 0;
@@ -240,7 +252,38 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
     setFilterJenisBiaya("all");
     setFilterTanggalOption("all");
     setFilterTanggalCustom("");
+    setFilterTanggalCustomEnd("");
     setFilterStatusNac("all");
+    setCurrentPage(1);
+  };
+
+  const handleCustomDateStartChange = (value: string) => {
+    setFilterTanggalCustom(value);
+    if (!value) {
+      setFilterTanggalCustomEnd("");
+      setCurrentPage(1);
+      return;
+    }
+    if (!filterTanggalCustomEnd) {
+      setFilterTanggalCustomEnd(value);
+    } else if (new Date(value) > new Date(filterTanggalCustomEnd)) {
+      setFilterTanggalCustomEnd(value);
+    }
+    setCurrentPage(1);
+  };
+
+  const handleCustomDateEndChange = (value: string) => {
+    setFilterTanggalCustomEnd(value);
+    if (!value) {
+      setFilterTanggalCustom("");
+      setCurrentPage(1);
+      return;
+    }
+    if (!filterTanggalCustom) {
+      setFilterTanggalCustom(value);
+    } else if (new Date(filterTanggalCustom) > new Date(value)) {
+      setFilterTanggalCustom(value);
+    }
     setCurrentPage(1);
   };
 
@@ -312,14 +355,44 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
 
   const formatTanggal2Digit = (tanggal: string) => {
     if (!tanggal) return "";
-    if (/^\d{2}\/\d{2}\/\d{4}/.test(tanggal)) {
-      return tanggal.replace(/(\d{2}\/\d{2}\/)\d{2}(\d{2})/, "$1$2");
+
+    const raw = tanggal.trim();
+    const dateMatch = raw.match(/\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}-\d{2}-\d{2}/);
+
+    if (!dateMatch) return raw;
+
+    const matched = dateMatch[0];
+
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(matched)) {
+      return matched;
     }
-    if (/^\d{4}-\d{2}-\d{2}/.test(tanggal)) {
-      const [y, m, d] = tanggal.split("-");
-      return `${d}/${m}/${y.slice(-2)}`;
+
+    if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(matched)) {
+      const [day, month, yearRaw] = matched.split(/[/-]/);
+      const year = yearRaw.length === 2 ? `20${yearRaw}` : yearRaw;
+      return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`;
     }
-    return tanggal.replace(/\b20(\d{2})\b/g, "$1");
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(matched)) {
+      const [year, month, day] = matched.split("-");
+      return `${day}/${month}/${year}`;
+    }
+
+    return raw;
+  };
+
+  const formatTanggalInput = (value?: string) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
   };
 
   const getRingkasanSingkatan = (item: ActivityItem) => {
@@ -335,6 +408,9 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
 
     return fullStr;
   };
+
+  const formatTahunDuaDigitUntukExport = (value: string) =>
+    value.replace(/(\d{1,2}\/\d{1,2}\/)(\d{4})\b/g, (_match, prefix, year) => `${prefix}${year.slice(-2)}`);
 
   const handleExportExcel = () => {
     const dataToExport = finalFilteredData.map((item, idx) => {
@@ -390,13 +466,13 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
 
       return {
         "No": idx + 1,
+        "Tanggal Input": formatTahunDuaDigitUntukExport(formatTanggalInput(item.createdAt)),
         "Nama Program": item.namaProgram,
         "Subjek Kegiatan": item.subjekKegiatan,
         "Objek Kegiatan": item.objekKegiatan || "-",
         "Jenis Biaya": item.jenisBiaya,
-        "Tanggal": formatTanggal2Digit(item.tanggalAwal),
-        "Input Oleh": item.createdByUsername ? `${item.createdByUsername} (${item.createdByRole || "-"})` : "-",
-        "Ringkasan Isi Form": getRingkasanSingkatan(item),
+        "Tanggal": formatTahunDuaDigitUntukExport(formatTanggal2Digit(item.tanggalAwal)),
+        "Ringkasan Isi Form": formatTahunDuaDigitUntukExport(getRingkasanSingkatan(item)),
         "Keyword NAC": isRed ? redNoteText || "Terdeteksi NAC" : "",
         "Aman": isSafe ? "Aman" : "",
         "grey area": isGrey ? greyNoteText || "Grey Area" : "",
@@ -530,7 +606,10 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                       value={filterTanggalOption}
                       onChange={(e) => {
                         setFilterTanggalOption(e.target.value);
-                        if (e.target.value !== "custom") setFilterTanggalCustom("");
+                        if (e.target.value !== "custom") {
+                          setFilterTanggalCustom("");
+                          setFilterTanggalCustomEnd("");
+                        }
                         setCurrentPage(1);
                       }}
                       className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white mb-2"
@@ -540,27 +619,41 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                       <option value="1minggu">1 Minggu (7 Hari Terakhir)</option>
                       <option value="1bulan">1 Bulan (30 Hari Terakhir)</option>
                       <option value="1tahun">1 Tahun (365 Hari Terakhir)</option>
-                      <option value="custom">Pilih Tanggal Spesifik...</option>
+                      <option value="custom">Pilih Rentang Tanggal...</option>
                     </select>
 
                     {filterTanggalOption === "custom" && (
-                      <div className="relative flex items-center mt-1">
-                        <input
-                          type="date"
-                          value={filterTanggalCustom}
-                          onChange={(e) => {
-                            setFilterTanggalCustom(e.target.value);
-                            setCurrentPage(1);
-                          }}
-                          className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white"
-                        />
-                        {filterTanggalCustom && (
+                      <div className="space-y-2 mt-1">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-600 mb-1">Dari Tanggal</label>
+                          <input
+                            type="date"
+                            value={filterTanggalCustom}
+                            onChange={(e) => handleCustomDateStartChange(e.target.value)}
+                            className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-600 mb-1">Sampai Tanggal</label>
+                          <input
+                            type="date"
+                            value={filterTanggalCustomEnd}
+                            onChange={(e) => handleCustomDateEndChange(e.target.value)}
+                            className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white"
+                          />
+                        </div>
+
+                        {(filterTanggalCustom || filterTanggalCustomEnd) && (
                           <button
-                            onClick={() => setFilterTanggalCustom("")}
-                            className="absolute right-8 text-slate-400 hover:text-slate-600 text-xs font-bold"
-                            title="Hapus tanggal spesifik"
+                            onClick={() => {
+                              setFilterTanggalCustom("");
+                              setFilterTanggalCustomEnd("");
+                            }}
+                            className="text-[10px] font-bold text-slate-600 hover:text-slate-800"
+                            title="Hapus rentang tanggal"
                           >
-                            ✕
+                            Hapus rentang tanggal
                           </button>
                         )}
                       </div>
@@ -666,7 +759,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
             </span>
           )}
 
-          {(filterTanggalOption !== "all" || filterTanggalCustom !== "") && (
+          {(filterTanggalOption !== "all" || filterTanggalCustom !== "" || filterTanggalCustomEnd !== "") && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-[#0072CE] text-xs font-bold border border-sky-200">
               Tanggal:{" "}
               {filterTanggalOption === "1hari"
@@ -677,11 +770,14 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                 ? "1 Bulan"
                 : filterTanggalOption === "1tahun"
                 ? "1 Tahun"
-                : filterTanggalCustom || "Spesifik"}
+                : filterTanggalCustom && filterTanggalCustomEnd
+                ? `${filterTanggalCustom} s.d ${filterTanggalCustomEnd}`
+                : filterTanggalCustom || filterTanggalCustomEnd || "Rentang"}
               <button
                 onClick={() => {
                   setFilterTanggalOption("all");
                   setFilterTanggalCustom("");
+                  setFilterTanggalCustomEnd("");
                 }}
                 className="hover:text-rose-600 font-bold ml-0.5 cursor-pointer"
               >
@@ -717,6 +813,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
           <thead>
             <tr className="bg-slate-100/70 border-b border-slate-200 text-slate-800 font-bold uppercase tracking-wider text-[10px] sm:text-[11px]">
               <th className="py-3 px-2 text-center w-8 sm:w-10">No</th>
+              <th className="py-3 px-2 sm:px-3">Tanggal Input</th>
               <th className="py-3 px-2 sm:px-3">Nama Program</th>
               <th className="py-3 px-2 sm:px-3">Subjek Kegiatan</th>
               <th className="py-3 px-2 sm:px-3">Objek Kegiatan</th>
@@ -731,7 +828,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
           <tbody className="divide-y divide-slate-100 text-slate-700 bg-white">
             {paginatedData.length === 0 ? (
               <tr>
-                <td colSpan={10} className="py-12 text-center text-slate-400">
+                <td colSpan={11} className="py-12 text-center text-slate-400">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Search className="w-8 h-8 text-slate-300 stroke-[1.5]" />
                     <div className="font-semibold text-slate-600">Tidak ada data kegiatan ditemukan.</div>
@@ -748,6 +845,12 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                   <tr key={row.id} className={`transition-colors group ${isRed ? "bg-rose-50/30 hover:bg-rose-50/60" : isGrey ? "bg-slate-100/40 hover:bg-slate-100/70" : "hover:bg-slate-50/80"}`}>
                     <td className="py-3 px-2 text-center font-semibold text-slate-500 text-xs">
                       {rowNum}
+                    </td>
+                    <td className="py-3 px-2 sm:px-3 text-slate-600 font-medium whitespace-nowrap text-xs">
+                      <div className="flex items-center gap-1 text-[11px]">
+                        <CalendarDays className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span>{formatTanggalInput(row.createdAt || row.tanggalAwal)}</span>
+                      </div>
                     </td>
                     <td className="py-3 px-2 sm:px-3 font-extrabold text-slate-900 group-hover:text-[#0072CE] transition-colors text-xs" title={row.namaProgram}>
                       <div className="line-clamp-2">{row.namaProgram}</div>

@@ -8,6 +8,7 @@ const slides = [
   { src: "/1.jpg", alt: "Latar belakang target NAC 2026" },
   { src: "/2.jpg", alt: "Alur NAC untuk kegiatan operasional PLN" },
   { src: "/3.jpg", alt: "Optimasi NAC dan action plans PLN" },
+  { src: "/4.jpg", alt: "Komponen NAC" },
 ];
 
 export function LandingPage() {

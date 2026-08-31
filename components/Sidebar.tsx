@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import {
+  LayoutDashboard,
   FolderKanban,
   ChevronDown,
   ChevronUp,
@@ -159,6 +160,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   Menu Utama Admin
                 </div>
               )}
+
+              {/* Dashboard Menu (Paling Atas) */}
+              <button
+                onClick={() => handleMenuClick("dashboard")}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs transition-all ${
+                  activeMenu === "dashboard"
+                    ? "bg-gradient-to-r from-[#0072CE] to-[#00A3E0] text-white shadow-md shadow-[#0072CE]/20"
+                    : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                }`}
+              >
+                <LayoutDashboard className={`w-4 h-4 shrink-0 ${activeMenu === "dashboard" ? "text-white" : "text-[#0072CE]"}`} />
+                {!sidebarCollapsed && <span>Dashboard</span>}
+              </button>
 
               {/* Kegiatan Parent Menu */}
               <div>
