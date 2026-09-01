@@ -106,8 +106,9 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
     if (!tanggalStr) return null;
     const str = tanggalStr.trim();
 
-    if (/^\d{1,2}\/\d{1,2}\/\d{2,4}/.test(str)) {
-      const parts = str.split("/");
+    // Check DD/MM/YYYY or DD-MM-YYYY format
+    if (/^\d{1,2}[/-]\d{1,2}[/-]\d{2,4}$/.test(str)) {
+      const parts = str.split(/[/-]/);
       const day = parseInt(parts[0], 10);
       const month = parseInt(parts[1], 10) - 1;
       let year = parseInt(parts[2], 10);
@@ -115,7 +116,8 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
       return new Date(year, month, day);
     }
 
-    if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+    // Check YYYY-MM-DD format (e.g. from date input picker)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
       const parts = str.split("-");
       const year = parseInt(parts[0], 10);
       const month = parseInt(parts[1], 10) - 1;
@@ -123,58 +125,63 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
       return new Date(year, month, day);
     }
 
+    // Handle ISO timestamp format (e.g. createdAt) or standard date string
     const d = new Date(str);
     return isNaN(d.getTime()) ? null : d;
   };
 
   const matchDateRange = (tanggalItem: string, option: string, customDate: string, customDateEnd: string) => {
     if (option === "all" && !customDate && !customDateEnd) return true;
+    if (!tanggalItem) return false;
+
+    const itemDate = parseItemDate(tanggalItem);
+    if (!itemDate) return false;
 
     if (option === "custom") {
       if (!customDate && !customDateEnd) return true;
-      if (!tanggalItem) return false;
-
-      const itemDate = parseItemDate(tanggalItem);
-      if (!itemDate) return false;
 
       const startDate = customDate ? parseItemDate(customDate) : null;
       const endDate = customDateEnd ? parseItemDate(customDateEnd) : null;
 
-      if (startDate && itemDate < startDate) return false;
-      if (endDate && itemDate > endDate) return false;
+      if (startDate) {
+        const startOfDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0, 0);
+        if (itemDate < startOfDay) return false;
+      }
+      if (endDate) {
+        const endOfDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999);
+        if (itemDate > endOfDay) return false;
+      }
       return true;
     }
 
     if (option === "all" && (customDate || customDateEnd)) {
-      const itemDate = parseItemDate(tanggalItem);
-      if (!itemDate) return false;
-
       const selectedDate = customDate || customDateEnd;
       const selected = parseItemDate(selectedDate);
       if (!selected) return true;
 
-      return itemDate.getFullYear() === selected.getFullYear() && itemDate.getMonth() === selected.getMonth() && itemDate.getDate() === selected.getDate();
+      return (
+        itemDate.getFullYear() === selected.getFullYear() &&
+        itemDate.getMonth() === selected.getMonth() &&
+        itemDate.getDate() === selected.getDate()
+      );
     }
 
-    const itemDate = parseItemDate(tanggalItem);
-    if (!itemDate) return true;
-
     const now = new Date();
-    const nowEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).getTime();
+    const nowEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime();
     const diffMs = nowEnd - itemDate.getTime();
     const diffDays = diffMs / (1000 * 60 * 60 * 24);
 
     if (option === "1hari") {
-      return diffDays >= -1 && diffDays <= 1;
+      return diffDays >= -0.05 && diffDays <= 1;
     }
     if (option === "1minggu") {
-      return diffDays >= -7 && diffDays <= 7;
+      return diffDays >= -0.05 && diffDays <= 7;
     }
     if (option === "1bulan") {
-      return diffDays >= -30 && diffDays <= 30;
+      return diffDays >= -0.05 && diffDays <= 30;
     }
     if (option === "1tahun") {
-      return diffDays >= -365 && diffDays <= 365;
+      return diffDays >= -0.05 && diffDays <= 365;
     }
 
     return true;
@@ -221,7 +228,8 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
           ? true
           : item.jenisBiaya.toLowerCase().trim() === filterJenisBiaya.toLowerCase().trim();
 
-      const matchTgl = matchDateRange(item.tanggalAwal, filterTanggalOption, filterTanggalCustom, filterTanggalCustomEnd);
+      const dateToFilter = item.createdAt || item.tanggalAwal;
+      const matchTgl = matchDateRange(dateToFilter, filterTanggalOption, filterTanggalCustom, filterTanggalCustomEnd);
 
       const matchNac = matchStatusNac(item, filterStatusNac);
 
@@ -600,7 +608,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                   {/* 3. Filter Tanggal */}
                   <div>
                     <label className="block font-bold text-slate-800 text-[11px] mb-1">
-                      3. Rentang / Tanggal Kegiatan
+                      3. Rentang / Tanggal Input
                     </label>
                     <select
                       value={filterTanggalOption}
@@ -614,7 +622,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                       }}
                       className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white mb-2"
                     >
-                      <option value="all">-- Semua Tanggal --</option>
+                      <option value="all">-- Semua Tanggal Input --</option>
                       <option value="1hari">1 Hari (24 Jam / Hari Ini)</option>
                       <option value="1minggu">1 Minggu (7 Hari Terakhir)</option>
                       <option value="1bulan">1 Bulan (30 Hari Terakhir)</option>
@@ -761,7 +769,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
 
           {(filterTanggalOption !== "all" || filterTanggalCustom !== "" || filterTanggalCustomEnd !== "") && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-[#0072CE] text-xs font-bold border border-sky-200">
-              Tanggal:{" "}
+              Tanggal Input:{" "}
               {filterTanggalOption === "1hari"
                 ? "1 Hari"
                 : filterTanggalOption === "1minggu"
