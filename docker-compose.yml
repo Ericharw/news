@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: news-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: news
+      POSTGRES_USER: news_user
+      POSTGRES_PASSWORD: Ericha12_
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      # Baris ini yang akan membaca dan mengeksekusi file SQL Anda otomatis
+      - ./scripts/news.sql:/docker-entrypoint-initdb.d/news.sql
+    networks:
+      - news_network
+
+  nextjs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: news-nextjs
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    depends_on:
+      - postgres
+    ports:
+      - "8080:3000"
+    networks:
+      - news_network
+
+volumes:
+  postgres_data:
+
+networks:
+  news_network:
+    driver: bridge
