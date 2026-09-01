@@ -43,6 +43,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
   const [sortBy, setSortBy] = useState<"TOTAL_DESC" | "RED_DESC" | "NAME_ASC">("TOTAL_DESC");
   const [hoveredProgramIndex, setHoveredProgramIndex] = useState<number | null>(null);
 
+  // Date Filter State based on Tanggal Input
+  const [filterTanggalOption, setFilterTanggalOption] = useState("all"); // 'all' | '1hari' | '1minggu' | '1bulan' | '1tahun' | 'custom'
+  const [filterTanggalCustom, setFilterTanggalCustom] = useState("");
+  const [filterTanggalCustomEnd, setFilterTanggalCustomEnd] = useState("");
+
   const navigateTo = (path: string) => {
     if (onNavigate) {
       onNavigate(path);
@@ -105,6 +110,134 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
     };
   }, []);
 
+  const parseItemDate = (tanggalStr: string): Date | null => {
+    if (!tanggalStr) return null;
+    const str = tanggalStr.trim();
+
+    // Check DD/MM/YYYY or DD-MM-YYYY format
+    if (/^\d{1,2}[/-]\d{1,2}[/-]\d{2,4}$/.test(str)) {
+      const parts = str.split(/[/-]/);
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      let year = parseInt(parts[2], 10);
+      if (year < 100) year += 2000;
+      return new Date(year, month, day);
+    }
+
+    // Check YYYY-MM-DD format (e.g. from date input picker)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+      const parts = str.split("-");
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      return new Date(year, month, day);
+    }
+
+    // Handle ISO timestamp format (e.g. createdAt) or standard date string
+    const d = new Date(str);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  const matchDateRange = (tanggalItem: string, option: string, customDate: string, customDateEnd: string) => {
+    if (option === "all" && !customDate && !customDateEnd) return true;
+    if (!tanggalItem) return false;
+
+    const itemDate = parseItemDate(tanggalItem);
+    if (!itemDate) return false;
+
+    if (option === "custom") {
+      if (!customDate && !customDateEnd) return true;
+
+      const startDate = customDate ? parseItemDate(customDate) : null;
+      const endDate = customDateEnd ? parseItemDate(customDateEnd) : null;
+
+      if (startDate) {
+        const startOfDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0, 0);
+        if (itemDate < startOfDay) return false;
+      }
+      if (endDate) {
+        const endOfDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999);
+        if (itemDate > endOfDay) return false;
+      }
+      return true;
+    }
+
+    if (option === "all" && (customDate || customDateEnd)) {
+      const selectedDate = customDate || customDateEnd;
+      const selected = parseItemDate(selectedDate);
+      if (!selected) return true;
+
+      return (
+        itemDate.getFullYear() === selected.getFullYear() &&
+        itemDate.getMonth() === selected.getMonth() &&
+        itemDate.getDate() === selected.getDate()
+      );
+    }
+
+    const now = new Date();
+    const nowEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime();
+    const diffMs = nowEnd - itemDate.getTime();
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+    if (option === "1hari") {
+      return diffDays >= -0.05 && diffDays <= 1;
+    }
+    if (option === "1minggu") {
+      return diffDays >= -0.05 && diffDays <= 7;
+    }
+    if (option === "1bulan") {
+      return diffDays >= -0.05 && diffDays <= 30;
+    }
+    if (option === "1tahun") {
+      return diffDays >= -0.05 && diffDays <= 365;
+    }
+
+    return true;
+  };
+
+  const handleCustomDateStartChange = (value: string) => {
+    setFilterTanggalCustom(value);
+    if (!value) {
+      setFilterTanggalCustomEnd("");
+      return;
+    }
+    if (!filterTanggalCustomEnd) {
+      setFilterTanggalCustomEnd(value);
+    } else if (new Date(value) > new Date(filterTanggalCustomEnd)) {
+      setFilterTanggalCustomEnd(value);
+    }
+  };
+
+  const handleCustomDateEndChange = (value: string) => {
+    setFilterTanggalCustomEnd(value);
+    if (!value) {
+      setFilterTanggalCustom("");
+      return;
+    }
+    if (!filterTanggalCustom) {
+      setFilterTanggalCustom(value);
+    } else if (new Date(filterTanggalCustom) > new Date(value)) {
+      setFilterTanggalCustom(value);
+    }
+  };
+
+  const handleResetDateFilter = () => {
+    setFilterTanggalOption("all");
+    setFilterTanggalCustom("");
+    setFilterTanggalCustomEnd("");
+  };
+
+  const isDateFilterActive =
+    filterTanggalOption !== "all" || filterTanggalCustom !== "" || filterTanggalCustomEnd !== "";
+
+  // Activities filtered by date input (createdAt / tanggalAwal)
+  const filteredActivities = useMemo(() => {
+    return activities.filter((item) => {
+      const dateToFilter = item.createdAt || item.tanggalAwal;
+      return matchDateRange(dateToFilter, filterTanggalOption, filterTanggalCustom, filterTanggalCustomEnd);
+    });
+  }, [activities, filterTanggalOption, filterTanggalCustom, filterTanggalCustomEnd]);
+
   // Compute status for an activity
   const getItemStatus = (item: ActivityItem): "MERAH" | "ABU" | "HIJAU" => {
     let redNoteText = "";
@@ -131,14 +264,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
     return "HIJAU";
   };
 
-  // Overall Statistics
+  // Overall Statistics based on filtered activities
   const stats = useMemo(() => {
-    let totalKegiatan = activities.length;
+    let totalKegiatan = filteredActivities.length;
     let totalMerah = 0;
     let totalHijau = 0;
     let totalAbu = 0;
 
-    activities.forEach((item) => {
+    filteredActivities.forEach((item) => {
       const status = getItemStatus(item);
       if (status === "MERAH") totalMerah++;
       else if (status === "ABU") totalAbu++;
@@ -147,7 +280,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
 
     // Unique Program names yang benar-benar ada di data kegiatan
     const programNamesSet = new Set<string>();
-    activities.forEach((a) => {
+    filteredActivities.forEach((a) => {
       if (a.namaProgram) {
         const clean = a.namaProgram.split("(")[0].trim();
         if (clean) programNamesSet.add(clean);
@@ -168,9 +301,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       percentMerah,
       percentAbu,
     };
-  }, [activities]);
+  }, [filteredActivities]);
 
-  // Statistics grouped strictly by programs that have actual data in activities
+  // Statistics grouped strictly by programs that have actual data in filtered activities
   const programBreakdown = useMemo(() => {
     const map = new Map<
       string,
@@ -197,8 +330,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       }
     });
 
-    // Hanya kelompokkan kegiatan yang memang ada datanya di activities
-    activities.forEach((item) => {
+    // Hanya kelompokkan kegiatan yang memang ada datanya di filteredActivities
+    filteredActivities.forEach((item) => {
       if (!item.namaProgram) return;
       const cleanName = item.namaProgram.split("(")[0].trim();
       if (!cleanName) return;
@@ -258,7 +391,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
     }
 
     return result;
-  }, [activities, masterPrograms, searchProgramQuery, selectedStatusFilter, sortBy]);
+  }, [filteredActivities, masterPrograms, searchProgramQuery, selectedStatusFilter, sortBy]);
 
   // Nilai maksimum untuk skala visual grafik batang komparatif
   const maxProgramTotal = useMemo(() => {
@@ -268,8 +401,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
 
   // Recent activities list
   const recentActivities = useMemo(() => {
-    return activities.slice(0, 5);
-  }, [activities]);
+    return filteredActivities.slice(0, 5);
+  }, [filteredActivities]);
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -311,6 +444,96 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
               <PlusCircle className="w-4 h-4" />
               <span>Tambah Kegiatan</span>
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Date Filter Bar (Berdasarkan Tanggal Input) */}
+      <div className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-xs transition-all">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-[#0072CE]/10 text-[#0072CE] shrink-0">
+              <Calendar className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm sm:text-base font-extrabold text-slate-900">
+                  Filter Tanggal Input
+                </h3>
+                {isDateFilterActive && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-sky-50 border border-sky-200 text-[#0072CE] text-[11px] font-bold">
+                    Aktif: {filteredActivities.length} Data
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Statistik, kartu metrik, dan grafik program dihitung otomatis berdasarkan tanggal input kegiatan.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Quick Filter Presets Dropdown */}
+            <div className="relative">
+              <select
+                value={filterTanggalOption}
+                onChange={(e) => {
+                  setFilterTanggalOption(e.target.value);
+                  if (e.target.value !== "custom") {
+                    setFilterTanggalCustom("");
+                    setFilterTanggalCustomEnd("");
+                  }
+                }}
+                className={`pl-3.5 pr-8 py-2 bg-slate-50 border rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0072CE]/30 focus:border-[#0072CE] transition-all cursor-pointer appearance-none ${
+                  isDateFilterActive ? "border-[#0072CE] text-[#0072CE] bg-sky-50/50" : "border-slate-200"
+                }`}
+              >
+                <option value="all">-- Semua Tanggal Input --</option>
+                <option value="1hari">1 Hari (24 Jam / Hari Ini)</option>
+                <option value="1minggu">1 Minggu (7 Hari Terakhir)</option>
+                <option value="1bulan">1 Bulan (30 Hari Terakhir)</option>
+                <option value="1tahun">1 Tahun (365 Hari Terakhir)</option>
+                <option value="custom">Pilih Rentang Tanggal...</option>
+              </select>
+              <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">
+                ▼
+              </div>
+            </div>
+
+            {/* Custom Date Inputs if custom is selected */}
+            {filterTanggalOption === "custom" && (
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs">
+                  <span className="text-[11px] font-bold text-slate-500">Dari:</span>
+                  <input
+                    type="date"
+                    value={filterTanggalCustom}
+                    onChange={(e) => handleCustomDateStartChange(e.target.value)}
+                    className="bg-transparent text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs">
+                  <span className="text-[11px] font-bold text-slate-500">Sampai:</span>
+                  <input
+                    type="date"
+                    value={filterTanggalCustomEnd}
+                    onChange={(e) => handleCustomDateEndChange(e.target.value)}
+                    className="bg-transparent text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Reset Button if active */}
+            {isDateFilterActive && (
+              <button
+                onClick={handleResetDateFilter}
+                className="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                title="Reset Filter Tanggal"
+              >
+                <span>Reset Tanggal</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -740,16 +963,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
             </div>
           ) : programBreakdown.length === 0 ? (
             <div className="py-12 text-center text-slate-400 font-semibold bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 space-y-3">
-              <p>Tidak ada program dalam data yang sesuai dengan kriteria filter pencarian.</p>
-              <button
-                onClick={() => {
-                  setSearchProgramQuery("");
-                  setSelectedStatusFilter("ALL");
-                }}
-                className="px-3.5 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold transition-all cursor-pointer"
-              >
-                Reset Filter
-              </button>
+              <p>Tidak ada program dalam data yang sesuai dengan kriteria filter pencarian atau tanggal yang dipilih.</p>
+              <div className="flex items-center justify-center gap-2">
+                {(searchProgramQuery || selectedStatusFilter !== "ALL") && (
+                  <button
+                    onClick={() => {
+                      setSearchProgramQuery("");
+                      setSelectedStatusFilter("ALL");
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold transition-all cursor-pointer"
+                  >
+                    Reset Filter Program
+                  </button>
+                )}
+                {isDateFilterActive && (
+                  <button
+                    onClick={handleResetDateFilter}
+                    className="px-3.5 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-bold transition-all cursor-pointer"
+                  >
+                    Reset Filter Tanggal
+                  </button>
+                )}
+              </div>
             </div>
           ) : chartViewMode === "BAR" ? (
             /* ============================================================ */

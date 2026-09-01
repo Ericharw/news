@@ -367,36 +367,34 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
     const raw = tanggal.trim();
     const dateMatch = raw.match(/\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}-\d{2}-\d{2}/);
 
-    if (!dateMatch) return raw;
+    if (!dateMatch) return raw.replace(/\b20(\d{2})\b/g, "$1");
 
     const matched = dateMatch[0];
 
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(matched)) {
-      return matched;
-    }
-
-    if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(matched)) {
+    if (/^\d{1,2}[/-]\d{1,2}[/-]\d{2,4}$/.test(matched)) {
       const [day, month, yearRaw] = matched.split(/[/-]/);
-      const year = yearRaw.length === 2 ? `20${yearRaw}` : yearRaw;
-      return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`;
+      const year = yearRaw.length === 4 ? yearRaw.slice(-2) : yearRaw.padStart(2, "0");
+      return raw.replace(matched, `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`);
     }
 
     if (/^\d{4}-\d{2}-\d{2}$/.test(matched)) {
       const [year, month, day] = matched.split("-");
-      return `${day}/${month}/${year}`;
+      return raw.replace(matched, `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year.slice(-2)}`);
     }
 
-    return raw;
+    return raw.replace(/\b20(\d{2})\b/g, "$1");
   };
 
   const formatTanggalInput = (value?: string) => {
     if (!value) return "-";
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
+    if (Number.isNaN(date.getTime())) {
+      return formatTanggal2Digit(value);
+    }
 
     const day = String(date.getDate()).padStart(2, "0");
     const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
+    const year = String(date.getFullYear()).slice(-2);
     const hours = String(date.getHours()).padStart(2, "0");
     const minutes = String(date.getMinutes()).padStart(2, "0");
 
@@ -411,14 +409,14 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
     const tglShort = formatTanggal2Digit(item.tanggalAwal);
 
     const fullStr = objekText
-      ? `${progCode}/${subjekCode}/${objekText}/${jbCode}/${tglShort}`
-      : `${progCode}/${subjekCode}/${jbCode}/${tglShort}`;
+      ? `${progCode}-${subjekCode}-${objekText}-${jbCode}-${tglShort}`
+      : `${progCode}-${subjekCode}-${jbCode}-${tglShort}`;
 
     return fullStr;
   };
 
   const formatTahunDuaDigitUntukExport = (value: string) =>
-    value.replace(/(\d{1,2}\/\d{1,2}\/)(\d{4})\b/g, (_match, prefix, year) => `${prefix}${year.slice(-2)}`);
+    value.replace(/(\d{1,2}\/\d{1,2}\/)(\d{4})\b/g, (_match, prefix, year) => `${prefix}${year.slice(-2)}`).replace(/\b20(\d{2})\b/g, "$1");
 
   const handleExportExcel = () => {
     const dataToExport = finalFilteredData.map((item, idx) => {

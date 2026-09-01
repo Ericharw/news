@@ -1,9 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 
-import { X, Calendar, Tag, FileText, CheckCircle2, AlertTriangle, ShieldCheck, HelpCircle } from "lucide-react";
+import { X, Calendar, Tag, FileText, CheckCircle2, AlertTriangle, ShieldCheck, HelpCircle, Copy, Check, FileCode2 } from "lucide-react";
 import { ActivityItem } from "@/types/activity";
+import { PROGRAM_OPTIONS } from "@/data/programOptions";
 
 interface ViewDetailModalProps {
   item: ActivityItem | null;
@@ -12,17 +13,116 @@ interface ViewDetailModalProps {
 
 const formatTanggal2Digit = (tanggal: string) => {
   if (!tanggal) return "";
-  if (/^\d{2}\/\d{2}\/\d{4}/.test(tanggal)) {
-    return tanggal.replace(/(\d{2}\/\d{2}\/)\d{2}(\d{2})/, "$1$2");
+  const raw = tanggal.trim();
+  const dateMatch = raw.match(/\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}-\d{2}-\d{2}/);
+
+  if (!dateMatch) return raw.replace(/\b20(\d{2})\b/g, "$1");
+
+  const matched = dateMatch[0];
+
+  if (/^\d{1,2}[/-]\d{1,2}[/-]\d{2,4}$/.test(matched)) {
+    const [day, month, yearRaw] = matched.split(/[/-]/);
+    const year = yearRaw.length === 4 ? yearRaw.slice(-2) : yearRaw.padStart(2, "0");
+    return raw.replace(matched, `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`);
   }
-  if (/^\d{4}-\d{2}-\d{2}/.test(tanggal)) {
-    const [y, m, d] = tanggal.split("-");
-    return `${d}/${m}/${y.slice(-2)}`;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(matched)) {
+    const [year, month, day] = matched.split("-");
+    return raw.replace(matched, `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year.slice(-2)}`);
   }
-  return tanggal.replace(/\b20(\d{2})\b/g, "$1");
+
+  return raw.replace(/\b20(\d{2})\b/g, "$1");
+};
+
+const getSingkatanProgram = (namaProgram: string) => {
+  if (!namaProgram) return "";
+  const match = PROGRAM_OPTIONS.find(
+    (p) =>
+      p.label.toLowerCase() === namaProgram.toLowerCase() ||
+      p.code.toLowerCase() === namaProgram.toLowerCase() ||
+      namaProgram.includes(`(${p.code})`)
+  );
+  if (match) return match.code;
+  const words = namaProgram.replace(/[^a-zA-Z0-9\s]/g, "").split(/\s+/).filter(Boolean);
+  if (words.length === 1) return words[0].substring(0, 5).toUpperCase();
+  return words.map((w) => w[0].toUpperCase()).join("");
+};
+
+const getSingkatanJenisBiaya = (jenis: string, masterMap: Record<string, string> = {}): string => {
+  if (!jenis) return "";
+  const rawTrimmed = jenis.trim();
+  const lowerKey = rawTrimmed.toLowerCase();
+
+  if (masterMap[lowerKey]) {
+    return masterMap[lowerKey].toUpperCase();
+  }
+
+  const foundEntry = Object.entries(masterMap).find(
+    ([k]) => lowerKey.includes(k) || k.includes(lowerKey)
+  );
+  if (foundEntry && foundEntry[1]) {
+    return foundEntry[1].toUpperCase();
+  }
+
+  const trimmed = rawTrimmed.toUpperCase();
+  if (trimmed.includes("SARJAR") || trimmed.includes("SARANA")) return "SARANA";
+  if (trimmed.includes("AMORTISASI") || trimmed.includes("AMOR")) return "AMOR";
+  if (trimmed.includes("PAJAK") || trimmed.includes("RETRIBUSI")) return "PAJAK";
+  if (trimmed.includes("IURAN")) return "IURAN";
+  if (trimmed.includes("CETAK")) return "CETAK";
+  if (trimmed.includes("ATK")) return "ATK";
+  if (trimmed.includes("KONSUM") || trimmed.includes("KONS")) return "KONS";
+  if (trimmed.includes("BANK")) return "BANK";
+  if (trimmed.includes("PERJALANAN") || trimmed === "PD" || trimmed.includes("PERDIN")) return "PERDIN";
+  if (trimmed.includes("AKOMODASI") || trimmed === "AKM" || trimmed.includes("AKOM")) return "AKOM";
+
+  if (/^[A-Z0-9\s-]{2,8}$/.test(rawTrimmed)) {
+    return rawTrimmed.toUpperCase();
+  }
+
+  const clean = trimmed.replace(/^[0-9.]+\s*/, "");
+  return clean.length > 8 ? clean.substring(0, 6) : clean;
+};
+
+const getRingkasanSingkatan = (item: ActivityItem, masterMap: Record<string, string> = {}) => {
+  const progCode = getSingkatanProgram(item.namaProgram);
+  const subjekCode = item.subjekKegiatan || "";
+  const objekText = item.objekKegiatan || "";
+  const jbCode = getSingkatanJenisBiaya(item.jenisBiaya, masterMap);
+  const tglShort = formatTanggal2Digit(item.tanggalAwal);
+
+  const fullStr = objekText
+    ? `${progCode}-${subjekCode}-${objekText}-${jbCode}-${tglShort}`
+    : `${progCode}-${subjekCode}-${jbCode}-${tglShort}`;
+
+  return fullStr;
 };
 
 export const ViewDetailModal: React.FC<ViewDetailModalProps> = ({ item, onClose }) => {
+  const [copied, setCopied] = useState(false);
+  const [masterJenisBiayaMap, setMasterJenisBiayaMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    async function loadMasterJenisBiaya() {
+      try {
+        const res = await fetch("/api/master/jenis-biaya");
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          const map: Record<string, string> = {};
+          json.data.forEach((entry: { nama: string; keterangan?: string }) => {
+            if (entry.nama && entry.keterangan) {
+              map[entry.nama.toLowerCase().trim()] = entry.keterangan.trim();
+            }
+          });
+          setMasterJenisBiayaMap(map);
+        }
+      } catch (err) {
+        console.error("Error loading master jenis biaya in modal:", err);
+      }
+    }
+    loadMasterJenisBiaya();
+  }, []);
+
   if (!item) return null;
 
   let redNoteText = "";
@@ -106,6 +206,15 @@ export const ViewDetailModal: React.FC<ViewDetailModalProps> = ({ item, onClose 
     labelText = "Tanggal";
     displayValue = formattedDate || rawInput;
   }
+
+  const ringkasanText = getRingkasanSingkatan(item, masterJenisBiayaMap);
+
+  const handleCopyRingkasan = () => {
+    if (!ringkasanText) return;
+    navigator.clipboard.writeText(ringkasanText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const getJenisBiayaBadge = (jenis: string) => {
     switch (jenis) {
@@ -232,7 +341,7 @@ export const ViewDetailModal: React.FC<ViewDetailModalProps> = ({ item, onClose 
             </div>
           )}
 
-          <div className="pt-2">
+          <div>
             <div className="bg-sky-50/60 p-3.5 rounded-xl border border-sky-100">
               <span className="text-[10px] font-bold text-sky-600 uppercase tracking-wider flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5" /> {labelText}
@@ -242,13 +351,40 @@ export const ViewDetailModal: React.FC<ViewDetailModalProps> = ({ item, onClose 
               </div>
             </div>
           </div>
+
+          {/* Ringkasan Isi Form */}
+          <div>
+            <div className="bg-slate-50/90 p-3.5 rounded-2xl border border-slate-200/80 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                  <FileCode2 className="w-3.5 h-3.5 text-[#0072CE]" /> Ringkasan Isi Form
+                </span>
+                {copied ? (
+                  <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
+                    <Check className="w-3 h-3" /> Tersalin
+                  </span>
+                ) : (
+                  <button
+                    onClick={handleCopyRingkasan}
+                    className="text-[10px] font-bold text-[#0072CE] hover:text-[#005bb5] hover:underline flex items-center gap-1 cursor-pointer"
+                    title="Salin Ringkasan"
+                  >
+                    <Copy className="w-3 h-3" /> Salin
+                  </button>
+                )}
+              </div>
+              <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-xs font-mono font-bold text-[#0072CE] break-all select-all shadow-2xs">
+                {ringkasanText}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Footer Action */}
         <div className="mt-6 flex justify-end">
           <button
             onClick={onClose}
-            className="px-5 py-2.5 bg-[#0072CE] hover:bg-[#005bb5] text-white font-bold rounded-xl text-xs sm:text-sm shadow-xs transition-all"
+            className="px-5 py-2.5 bg-[#0072CE] hover:bg-[#005bb5] text-white font-bold rounded-xl text-xs sm:text-sm shadow-xs transition-all cursor-pointer"
           >
             Tutup Rincian
           </button>

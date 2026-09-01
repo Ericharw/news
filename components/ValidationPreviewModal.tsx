@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { X, CheckCircle2, AlertTriangle, ArrowLeft, Send, ShieldAlert, HelpCircle, Copy, Download, Check } from "lucide-react";
 import { ActivityFormValues } from "@/types/activity";
 import Swal from "sweetalert2";
@@ -79,8 +79,8 @@ const buildRingkasan = (formValues: ActivityFormValues, masterMap: Record<string
   const jbCode = getSingkatanJenisBiaya(formValues.jenisBiaya || "", masterMap);
   const tgl = formatTanggal2Digit(formValues.tanggalAwal || "");
   return objek
-    ? `${progCode}/${subjek}/${objek}/${jbCode}/${tgl}`
-    : `${progCode}/${subjek}/${jbCode}/${tgl}`;
+    ? `${progCode}-${subjek}-${objek}-${jbCode}-${tgl}`
+    : `${progCode}-${subjek}-${jbCode}-${tgl}`;
 };
 
 export const ValidationPreviewModal: React.FC<ValidationPreviewModalProps> = ({
