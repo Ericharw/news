@@ -9,7 +9,6 @@ services:
       POSTGRES_PASSWORD: Ericha12_
     volumes:
       - postgres_data:/var/lib/postgresql
-      # Baris ini yang akan membaca dan mengeksekusi file SQL Anda otomatis
       - ./scripts/news.sql:/docker-entrypoint-initdb.d/news.sql
     networks:
       - news_network
