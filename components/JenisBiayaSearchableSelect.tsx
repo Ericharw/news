@@ -86,7 +86,18 @@ export const JenisBiayaSearchableSelect: React.FC<JenisBiayaSearchableSelectProp
         (opt?.nama || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         (opt?.singkatan || "").toLowerCase().includes(searchTerm.toLowerCase())
     )
-    .reverse();
+    .sort((a, b) => {
+      const nameA = a?.nama || "";
+      const nameB = b?.nama || "";
+
+      // Prioritas agar 5.2 selalu berada di paling atas
+      const aIs52 = nameA.startsWith("5.2");
+      const bIs52 = nameB.startsWith("5.2");
+      if (aIs52 && !bIs52) return -1;
+      if (!aIs52 && bIs52) return 1;
+
+      return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: "base" });
+    });
 
   const handleSelect = (opt: JenisBiayaOption) => {
     onChange(opt.nama);

@@ -96,15 +96,24 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
 
         {/* Subjek Kegiatan */}
         <div>
-          <label className="block font-bold text-slate-800 mb-1.5">
-            Subjek Kegiatan (Mitra/Pihak Ke-3) <span className="text-rose-500">*</span>
-          </label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block font-bold text-slate-800">
+              Subjek Kegiatan (Mitra/Pihak Ke-3) <span className="text-rose-500">*</span>
+            </label>
+            <span className="text-[11px] text-slate-400 font-medium">
+              {(formValues.subjekKegiatan || "").length}/15
+            </span>
+          </div>
           <input
             type="text"
             required
+            maxLength={15}
             placeholder="Contoh: Ericha Rizki"
             value={formValues.subjekKegiatan}
-            onChange={(e) => setFormValues({ ...formValues, subjekKegiatan: e.target.value })}
+            onChange={(e) => {
+              const val = e.target.value.replace(/[^a-zA-Z\s]/g, "").slice(0, 15);
+              setFormValues({ ...formValues, subjekKegiatan: val });
+            }}
             className="w-full px-3.5 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white placeholder:text-slate-400 transition-all text-xs sm:text-sm font-medium"
           />
         </div>
@@ -123,15 +132,24 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
 
         {/* Objek Kegiatan */}
         <div>
-          <label className="block font-bold text-slate-800 mb-1.5">
-            Objek Kegiatan (Judul Diklat) {requiredObject && <span className="text-rose-500">*</span>}
-          </label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block font-bold text-slate-800">
+              Objek Kegiatan (Judul Diklat) {requiredObject && <span className="text-rose-500">*</span>}
+            </label>
+            <span className="text-[11px] text-slate-400 font-medium">
+              {(formValues.objekKegiatan || "").length}/15
+            </span>
+          </div>
           <textarea
-            rows={3}
+            rows={2}
             required={requiredObject}
-            placeholder="Contoh: ENTREPRENEUR-LAUNDRY atau Analisa Vibrasi 1"
+            maxLength={15}
+            placeholder="Contoh: ENTREPRENEUR"
             value={formValues.objekKegiatan}
-            onChange={(e) => setFormValues({ ...formValues, objekKegiatan: e.target.value })}
+            onChange={(e) => {
+              const val = e.target.value.replace(/[^a-zA-Z\s]/g, "").slice(0, 15);
+              setFormValues({ ...formValues, objekKegiatan: val });
+            }}
             className="w-full px-3.5 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white placeholder:text-slate-400 transition-all text-xs sm:text-sm font-medium resize-none"
           />
         </div>

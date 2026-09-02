@@ -226,11 +226,24 @@ export const MasterJenisBiayaView: React.FC<MasterJenisBiayaViewProps> = ({ init
   };
 
   const filteredItems = useMemo(() => {
-    return items.filter(
-      (item) =>
-        (item?.nama || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (item?.keterangan || "").toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    return items
+      .filter(
+        (item) =>
+          (item?.nama || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (item?.keterangan || "").toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      .sort((a, b) => {
+        const nameA = a?.nama || "";
+        const nameB = b?.nama || "";
+
+        // Prioritas agar 5.2 selalu berada di paling atas
+        const aIs52 = nameA.startsWith("5.2");
+        const bIs52 = nameB.startsWith("5.2");
+        if (aIs52 && !bIs52) return -1;
+        if (!aIs52 && bIs52) return 1;
+
+        return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: "base" });
+      });
   }, [items, searchQuery]);
 
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage) || 1;
@@ -589,12 +602,29 @@ export const MasterJenisBiayaView: React.FC<MasterJenisBiayaViewProps> = ({ init
             <div className="p-5 sm:p-6 space-y-4 text-xs overflow-y-auto">
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-3">
                 <div>
-                  <span className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider block mb-0.5">
+                  <span className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider block mb-1">
                     Nama Jenis Biaya
                   </span>
-                  <span className="inline-block px-3 py-1 rounded-lg bg-sky-100 text-[#0072CE] font-extrabold text-sm border border-sky-200">
-                    {viewingItem.nama}
-                  </span>
+                  {(() => {
+                    const match = viewingItem.nama ? viewingItem.nama.match(/^(\d+(?:\.\d+)*)\s*[-–—:]?\s*(.+)$/) : null;
+                    if (match) {
+                      return (
+                        <div className="flex flex-col items-start gap-1">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-sky-100 text-[#0072CE] font-black text-xs border border-sky-200">
+                            {match[1]}
+                          </span>
+                          <span className="font-extrabold text-slate-900 text-sm leading-snug">
+                            {match[2]}
+                          </span>
+                        </div>
+                      );
+                    }
+                    return (
+                      <span className="inline-block px-3 py-1 rounded-lg bg-sky-100 text-[#0072CE] font-extrabold text-sm border border-sky-200">
+                        {viewingItem.nama}
+                      </span>
+                    );
+                  })()}
                 </div>
 
                 <div>

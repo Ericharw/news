@@ -227,11 +227,18 @@ export const MasterProgramView: React.FC<MasterProgramViewProps> = ({ initialEdi
   };
 
   const filteredPrograms = useMemo(() => {
-    return programs.filter(
-      (p) =>
-        (p?.label || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p?.code || "").toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    return programs
+      .filter(
+        (p) =>
+          (p?.label || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (p?.code || "").toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      .sort((a, b) =>
+        (a?.label || "").localeCompare(b?.label || "", undefined, {
+          numeric: true,
+          sensitivity: "base",
+        })
+      );
   }, [programs, searchQuery]);
 
   const totalPages = Math.ceil(filteredPrograms.length / itemsPerPage) || 1;

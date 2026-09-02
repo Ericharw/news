@@ -7,7 +7,7 @@ let memoryJenisBiaya: MasterJenisBiayaItem[] = [];
 // GET /api/master/jenis-biaya - Fetch all master jenis biaya from PostgreSQL
 export async function GET() {
   try {
-    const result = await pool.query("SELECT * FROM master_jenis_biaya ORDER BY id DESC;");
+    const result = await pool.query("SELECT * FROM master_jenis_biaya ORDER BY id ASC;");
     const items: MasterJenisBiayaItem[] = result.rows.map((row) => ({
       id: row.id,
       nama: row.jenis_biaya || row.nama || "",

@@ -38,7 +38,7 @@ export async function ensureProgramTable() {
 export async function GET() {
   try {
     await ensureProgramTable();
-    const result = await pool.query("SELECT * FROM master_program ORDER BY id DESC;");
+    const result = await pool.query("SELECT * FROM master_program ORDER BY nama_program ASC;");
     const programs: MasterProgramItem[] = result.rows.map((row) => ({
       id: row.id,
       label: row.nama_program || row.label,
@@ -48,7 +48,10 @@ export async function GET() {
     return NextResponse.json({ success: true, data: programs });
   } catch (error: unknown) {
     console.warn("GET Master Programs warning, operating in memory fallback mode:", (error as Error).message);
-    return NextResponse.json({ success: true, data: memoryPrograms });
+    const sortedMemory = [...memoryPrograms].sort((a, b) =>
+      (a.label || "").localeCompare(b.label || "", undefined, { numeric: true, sensitivity: "base" })
+    );
+    return NextResponse.json({ success: true, data: sortedMemory });
   }
 }
 
