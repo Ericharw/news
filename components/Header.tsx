@@ -28,32 +28,66 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
+  const [isSessionLoading, setIsSessionLoading] = useState(true);
 
   const [profileName, setProfileName] = useState("Admin PLN");
   const [profileEmail, setProfileEmail] = useState("admin.diklat@pln.co.id");
   const [profileJabatan, setProfileJabatan] = useState("Administrator SDM");
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("pln_admin_profile");
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (parsed.namaAdmin) setProfileName(parsed.namaAdmin);
-          if (parsed.emailAdmin) setProfileEmail(parsed.emailAdmin);
-          if (parsed.jabatanAdmin) setProfileJabatan(parsed.jabatanAdmin);
-        } catch (e) {}
+    function loadSavedProfile(user?: SessionUser | null) {
+      if (typeof window !== "undefined") {
+        const key = user && user.username !== "admin" ? `pln_profile_${user.username}` : "pln_admin_profile";
+        const saved = localStorage.getItem(key);
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (parsed.namaAdmin || parsed.namaUser) setProfileName(parsed.namaAdmin || parsed.namaUser);
+            if (parsed.emailAdmin || parsed.emailUser) setProfileEmail(parsed.emailAdmin || parsed.emailUser);
+            if (parsed.jabatanAdmin || parsed.jabatanUser) setProfileJabatan(parsed.jabatanAdmin || parsed.jabatanUser);
+          } catch (e) {}
+        }
       }
     }
-  }, []);
 
-  useEffect(() => {
     fetch("/api/auth/session", { cache: "no-store" })
       .then((response) => response.json())
       .then((result: { success?: boolean; data?: SessionUser | null }) => {
-        if (result.success && result.data) setSessionUser(result.data);
+        if (result.success && result.data) {
+          setSessionUser(result.data);
+          loadSavedProfile(result.data);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("news_cached_user", JSON.stringify(result.data));
+            localStorage.setItem("adminSession", JSON.stringify(result.data));
+          }
+        } else {
+          setSessionUser(null);
+          loadSavedProfile();
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("news_cached_user");
+          }
+        }
       })
-      .catch(() => undefined);
+      .catch(() => loadSavedProfile())
+      .finally(() => setIsSessionLoading(false));
+
+    const handleProfileUpdated = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail) {
+        if (customEvent.detail.namaUser || customEvent.detail.namaAdmin) {
+          setProfileName(customEvent.detail.namaUser || customEvent.detail.namaAdmin);
+        }
+        if (customEvent.detail.emailUser || customEvent.detail.emailAdmin) {
+          setProfileEmail(customEvent.detail.emailUser || customEvent.detail.emailAdmin);
+        }
+        if (customEvent.detail.jabatanUser || customEvent.detail.jabatanAdmin) {
+          setProfileJabatan(customEvent.detail.jabatanUser || customEvent.detail.jabatanAdmin);
+        }
+      }
+    };
+
+    window.addEventListener("pln-profile-updated", handleProfileUpdated);
+    return () => window.removeEventListener("pln-profile-updated", handleProfileUpdated);
   }, []);
 
   // Change Password State
@@ -153,6 +187,19 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
+  const getInitials = (name?: string, role?: string) => {
+    if (role && role !== "ADMIN") {
+      if (role === "K3L_KAM") return "K3L";
+      return role.slice(0, 3).toUpperCase();
+    }
+    if (!name) return "AP";
+    const words = name.trim().split(/\s+/).filter(Boolean);
+    if (words.length >= 2) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
+
   const isLoggedIn = userRole === "admin" || Boolean(sessionUser);
   const displayName = sessionUser?.nama || profileName;
   const displayRole = sessionUser?.role || "ADMIN";
@@ -228,14 +275,18 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Profile / Admin Login Container */}
         <div className="relative border-l border-slate-200 pl-3 sm:pl-5">
           {!isLoggedIn ? (
-            <button
-              onClick={handleToggleRole}
-              className="flex items-center gap-2 px-4 py-2 bg-[#0072CE] hover:bg-[#005bb5] text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md transition-all cursor-pointer border border-[#00A3E0]/30"
-              title="Klik untuk Login sebagai Admin SDM"
-            >
-              <ShieldCheck className="w-4 h-4 text-[#FFC72C]" />
-              <span>Login Admin</span>
-            </button>
+            isSessionLoading && userRole === "user" ? (
+              <div className="w-28 h-9" />
+            ) : (
+              <button
+                onClick={handleToggleRole}
+                className="flex items-center gap-2 px-4 py-2 bg-[#0072CE] hover:bg-[#005bb5] text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md transition-all cursor-pointer border border-[#00A3E0]/30"
+                title="Klik untuk Login sebagai Admin SDM"
+              >
+                <ShieldCheck className="w-4 h-4 text-[#FFC72C]" />
+                <span>Login Admin</span>
+              </button>
+            )
           ) : (
             <button
               onClick={() => setShowProfileDropdown(!showProfileDropdown)}
@@ -263,7 +314,7 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 mb-1">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-xl text-white flex items-center justify-center font-bold text-xs bg-[#0072CE]">
-                    AP
+                    {getInitials(displayName, displayRole)}
                   </div>
                   <div>
                     <div className="text-xs font-black text-slate-900 truncate max-w-[150px]">
@@ -285,10 +336,13 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   onClick={() => {
                     setShowProfileDropdown(false);
-                    if (sessionUser && sessionUser.role !== "ADMIN") {
-                      Swal.fire({ icon: "info", title: "Profil Pengguna", text: "Pengaturan profil pengguna tersedia melalui administrator.", confirmButtonColor: "#0072CE" });
-                    } else if (typeof window !== "undefined") {
-                      window.location.href = "/data-kegiatan/profile";
+                    if (typeof window !== "undefined") {
+                      if (sessionUser && sessionUser.role === "ADMIN") {
+                        window.location.href = "/data-kegiatan/profile";
+                      } else {
+                        // For non-admin users, dispatch a custom event to trigger profile menu in UserInputPage
+                        window.dispatchEvent(new CustomEvent("open-user-profile"));
+                      }
                     }
                   }}
                   className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 font-semibold transition-all"

@@ -4,31 +4,22 @@ import React, { useState, useEffect } from "react";
 import { User, ShieldCheck, KeyRound, AlertCircle, CheckCircle2, Lock, Mail, Building2, Calendar, RefreshCw, Save, Eye, EyeOff } from "lucide-react";
 import Swal from "sweetalert2";
 
-export const ProfileSettingsView: React.FC = () => {
-  // Editable Account Detail State
-  const [namaAdmin, setNamaAdmin] = useState("Admin PLN");
-  const [emailAdmin, setEmailAdmin] = useState("admin.diklat@pln.co.id");
-  const [unitAdmin, setUnitAdmin] = useState("PT PLN (Persero) UPDL Surabaya");
-  const [jabatanAdmin, setJabatanAdmin] = useState("Administrator SDM & Diklat");
-  const [isProfileSaving, setIsProfileSaving] = useState(false);
+interface SessionUser {
+  id: string;
+  username: string;
+  nama: string;
+  role: string;
+}
 
-  // Load saved profile on mount
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("pln_admin_profile");
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (parsed.namaAdmin) setNamaAdmin(parsed.namaAdmin);
-          if (parsed.emailAdmin) setEmailAdmin(parsed.emailAdmin);
-          if (parsed.unitAdmin) setUnitAdmin(parsed.unitAdmin);
-          if (parsed.jabatanAdmin) setJabatanAdmin(parsed.jabatanAdmin);
-        } catch (e) {
-          console.error("Error parsing saved profile:", e);
-        }
-      }
-    }
-  }, []);
+export const ProfileSettingsView: React.FC = () => {
+  // Session & User Info State
+  const [currentUsername, setCurrentUsername] = useState("admin");
+  const [currentUserRole, setCurrentUserRole] = useState("ADMIN");
+  const [namaUser, setNamaUser] = useState("Admin PLN");
+  const [emailUser, setEmailUser] = useState("admin.diklat@pln.co.id");
+  const [unitUser, setUnitUser] = useState("PT PLN (Persero) UPDL Surabaya");
+  const [jabatanUser, setJabatanUser] = useState("Administrator SDM & Diklat");
+  const [isProfileSaving, setIsProfileSaving] = useState(false);
 
   // Password State
   const [oldPassword, setOldPassword] = useState("");
@@ -40,13 +31,98 @@ export const ProfileSettingsView: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
+  // Load user session and corresponding profile
+  useEffect(() => {
+    async function loadUserData() {
+      try {
+        const res = await fetch("/api/auth/session", { cache: "no-store" });
+        const json: { success?: boolean; data?: SessionUser | null } = await res.json();
+        
+        let uname = "admin";
+        let role = "ADMIN";
+        let defaultNama = "Admin PLN";
+        let defaultEmail = "admin.diklat@pln.co.id";
+        let defaultJabatan = "Administrator SDM & Diklat";
+        const defaultUnit = "PT PLN (Persero) UPDL Surabaya";
+
+        if (json.success && json.data) {
+          uname = json.data.username;
+          role = json.data.role;
+
+          if (role === "PKU") {
+            defaultNama = "PKU";
+            defaultEmail = "pku.diklat@pln.co.id";
+            defaultJabatan = "User Bagian PKU";
+          } else if (role === "JAR") {
+            defaultNama = "JAR";
+            defaultEmail = "jar.diklat@pln.co.id";
+            defaultJabatan = "User Bagian JAR";
+          } else if (role === "K3L_KAM") {
+            defaultNama = "K3L & KAM";
+            defaultEmail = "k3l_kam.diklat@pln.co.id";
+            defaultJabatan = "User Bagian K3L & Keamanan";
+          } else {
+            defaultNama = json.data.nama || "Admin PLN";
+            defaultEmail = "admin.diklat@pln.co.id";
+            defaultJabatan = "Administrator SDM & Diklat";
+          }
+        }
+
+        setCurrentUsername(uname);
+        setCurrentUserRole(role);
+
+        // Check local storage for customized profile for this specific user
+        if (typeof window !== "undefined") {
+          const userKey = uname === "admin" ? "pln_admin_profile" : `pln_profile_${uname}`;
+          const saved = localStorage.getItem(userKey);
+          if (saved) {
+            try {
+              const parsed = JSON.parse(saved);
+              setNamaUser(parsed.namaAdmin || parsed.namaUser || defaultNama);
+              setEmailUser(parsed.emailAdmin || parsed.emailUser || defaultEmail);
+              setUnitUser(parsed.unitAdmin || parsed.unitUser || defaultUnit);
+              setJabatanUser(parsed.jabatanAdmin || parsed.jabatanUser || defaultJabatan);
+              return;
+            } catch {
+              // fallback to defaults
+            }
+          }
+        }
+
+        setNamaUser(defaultNama);
+        setEmailUser(defaultEmail);
+        setUnitUser(defaultUnit);
+        setJabatanUser(defaultJabatan);
+      } catch (e) {
+        console.error("Error loading profile session:", e);
+      }
+    }
+
+    loadUserData();
+  }, []);
+
+  const getInitials = (name: string, role: string) => {
+    if (role && role !== "ADMIN") {
+      if (role === "K3L_KAM") return "K3L";
+      return role.slice(0, 3).toUpperCase();
+    }
+    if (!name) return "AP";
+    const words = name.trim().split(/\s+/).filter(Boolean);
+    if (words.length >= 2) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  const displayRoleLabel = currentUserRole === "K3L_KAM" ? "K3L & KAM" : currentUserRole;
+
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!namaAdmin.trim() || !emailAdmin.trim()) {
+    if (!namaUser.trim() || !emailUser.trim()) {
       Swal.fire({
         icon: "warning",
         title: "Input Tidak Lengkap",
-        text: "Harap isi Nama dan Email Admin.",
+        text: "Harap lengkapi Nama dan Email Anda.",
         confirmButtonColor: "#0072CE",
       });
       return;
@@ -54,15 +130,20 @@ export const ProfileSettingsView: React.FC = () => {
 
     setIsProfileSaving(true);
     if (typeof window !== "undefined") {
-      localStorage.setItem(
-        "pln_admin_profile",
-        JSON.stringify({
-          namaAdmin: namaAdmin.trim(),
-          emailAdmin: emailAdmin.trim(),
-          unitAdmin: unitAdmin.trim(),
-          jabatanAdmin: jabatanAdmin.trim(),
-        })
-      );
+      const profileData = {
+        namaAdmin: namaUser.trim(),
+        namaUser: namaUser.trim(),
+        emailAdmin: emailUser.trim(),
+        emailUser: emailUser.trim(),
+        unitAdmin: unitUser.trim(),
+        unitUser: unitUser.trim(),
+        jabatanAdmin: jabatanUser.trim(),
+        jabatanUser: jabatanUser.trim(),
+      };
+
+      const userKey = currentUsername === "admin" ? "pln_admin_profile" : `pln_profile_${currentUsername}`;
+      localStorage.setItem(userKey, JSON.stringify(profileData));
+      window.dispatchEvent(new CustomEvent("pln-profile-updated", { detail: profileData }));
     }
 
     setTimeout(async () => {
@@ -70,14 +151,10 @@ export const ProfileSettingsView: React.FC = () => {
       await Swal.fire({
         icon: "success",
         title: "Profil Berhasil Diperbarui!",
-        text: "Detail informasi akun Admin telah berhasil disimpan.",
+        text: "Detail informasi akun Anda telah berhasil disimpan.",
         confirmButtonColor: "#0072CE",
         timer: 2000,
       });
-
-      if (typeof window !== "undefined") {
-        window.location.href = "/data-kegiatan";
-      }
     }, 500);
   };
 
@@ -106,7 +183,6 @@ export const ProfileSettingsView: React.FC = () => {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: "admin",
           oldPassword: oldPassword.trim(),
           newPassword: newPassword.trim(),
         }),
@@ -122,16 +198,12 @@ export const ProfileSettingsView: React.FC = () => {
         await Swal.fire({
           icon: "success",
           title: "Password Berhasil Diperbarui!",
-          text: "Password Admin baru telah berhasil tersimpan di database.",
+          text: "Password baru Anda telah berhasil tersimpan di database.",
           confirmButtonColor: "#0072CE",
           timer: 2000,
         });
-
-        if (typeof window !== "undefined") {
-          window.location.href = "/data-kegiatan";
-        }
       } else {
-        setErrorMsg(json.error || "Gagal memperbarui password admin.");
+        setErrorMsg(json.error || "Gagal memperbarui password.");
       }
     } catch (err: unknown) {
       console.error("Error updating password:", err);
@@ -155,20 +227,20 @@ export const ProfileSettingsView: React.FC = () => {
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-5">
             <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 text-white flex items-center justify-center font-black text-2xl sm:text-3xl shadow-inner shrink-0">
-              AP
+              {getInitials(namaUser, currentUserRole)}
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  {namaAdmin || "Admin PLN"}
+                  {namaUser}
                 </h2>
                 <span className="px-3 py-1 bg-[#FFC72C] text-slate-950 text-xs font-black uppercase tracking-wider rounded-full border border-amber-300 flex items-center gap-1 shadow-xs">
                   <ShieldCheck className="w-3.5 h-3.5 text-slate-950" />
-                  <span>{jabatanAdmin || "Administrator SDM"}</span>
+                  <span>{displayRoleLabel}</span>
                 </span>
               </div>
               <p className="text-sky-100 text-xs sm:text-sm mt-1 font-medium">
-                {unitAdmin || "PT PLN (Persero) UPDL Surabaya"}
+                {unitUser}
               </p>
             </div>
           </div>
@@ -204,25 +276,25 @@ export const ProfileSettingsView: React.FC = () => {
                     type="text"
                     disabled
                     readOnly
-                    value="admin"
+                    value={currentUsername}
                     className="w-full pl-10 pr-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs sm:text-sm font-extrabold text-slate-500 cursor-not-allowed select-none"
                   />
                 </div>
               </div>
 
-              {/* Nama Admin */}
+              {/* Nama Pengguna */}
               <div>
                 <label className="block font-bold text-slate-800 mb-1.5">
-                  Nama Administrator <span className="text-rose-500">*</span>
+                  Nama Pengguna / Akun <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative flex items-center">
                   <User className="w-4 h-4 text-[#0072CE] absolute left-3.5" />
                   <input
                     type="text"
                     required
-                    value={namaAdmin}
-                    onChange={(e) => setNamaAdmin(e.target.value)}
-                    placeholder="Masukkan nama admin..."
+                    value={namaUser}
+                    onChange={(e) => setNamaUser(e.target.value)}
+                    placeholder="Masukkan nama akun..."
                     className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all"
                   />
                 </div>
@@ -238,9 +310,9 @@ export const ProfileSettingsView: React.FC = () => {
                   <input
                     type="email"
                     required
-                    value={emailAdmin}
-                    onChange={(e) => setEmailAdmin(e.target.value)}
-                    placeholder="Contoh: admin@pln.co.id"
+                    value={emailUser}
+                    onChange={(e) => setEmailUser(e.target.value)}
+                    placeholder="Contoh: user@pln.co.id"
                     className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all"
                   />
                 </div>
@@ -255,8 +327,8 @@ export const ProfileSettingsView: React.FC = () => {
                   <Building2 className="w-4 h-4 text-[#0072CE] absolute left-3.5" />
                   <input
                     type="text"
-                    value={unitAdmin}
-                    onChange={(e) => setUnitAdmin(e.target.value)}
+                    value={unitUser}
+                    onChange={(e) => setUnitUser(e.target.value)}
                     placeholder="Nama unit kerja..."
                     className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all"
                   />
@@ -272,9 +344,9 @@ export const ProfileSettingsView: React.FC = () => {
                   <Calendar className="w-4 h-4 text-[#0072CE] absolute left-3.5" />
                   <input
                     type="text"
-                    value={jabatanAdmin}
-                    onChange={(e) => setJabatanAdmin(e.target.value)}
-                    placeholder="Jabatan admin..."
+                    value={jabatanUser}
+                    onChange={(e) => setJabatanUser(e.target.value)}
+                    placeholder="Jabatan pengguna..."
                     className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all"
                   />
                 </div>
@@ -328,7 +400,7 @@ export const ProfileSettingsView: React.FC = () => {
                   <input
                     type={showOldPass ? "text" : "password"}
                     required
-                    placeholder="Masukkan password lama admin"
+                    placeholder="Masukkan password lama Anda"
                     value={oldPassword}
                     onChange={(e) => setOldPassword(e.target.value)}
                     className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A3E0] focus:bg-white transition-all"

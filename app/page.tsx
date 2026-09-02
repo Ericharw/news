@@ -217,6 +217,13 @@ function UserInputPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isKegiatanOpen, setIsKegiatanOpen] = useState(true);
 
+  // Listen for open-user-profile event from Header dropdown
+  useEffect(() => {
+    const handler = () => setActiveMenu("profile");
+    window.addEventListener("open-user-profile", handler);
+    return () => window.removeEventListener("open-user-profile", handler);
+  }, []);
+
   const resetForm = () => setFormValues({ namaProgram: "", subjekKegiatan: "", jenisBiaya: "", objekKegiatan: "", tanggalAwal: "", batch: "" });
 
   const validateForm = async (event: React.FormEvent) => {
@@ -272,7 +279,7 @@ function UserInputPage() {
   };
 
   const handleMenuChange = (menu: ActiveMenuType) => {
-    if (menu === "user-form" || menu === "riwayat-user") setActiveMenu(menu);
+    if (menu === "user-form" || menu === "riwayat-user" || menu === "profile") setActiveMenu(menu);
   };
 
   return (
@@ -281,7 +288,11 @@ function UserInputPage() {
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
         <Header activeMenu={activeMenu} sidebarCollapsed={sidebarCollapsed} setSidebarCollapsed={setSidebarCollapsed} userRole="user" setUserRole={() => undefined} />
         <main className="flex-1 p-3 sm:p-6 md:p-8 space-y-6 max-w-7xl w-full mx-auto overflow-x-hidden">
-          <UserFormView formValues={formValues} setFormValues={setFormValues} onSubmit={validateForm} onReset={resetForm} isValidating={isValidating} activeMenu={activeMenu} />
+          {activeMenu === "profile" ? (
+            <ProfileSettingsView />
+          ) : (
+            <UserFormView formValues={formValues} setFormValues={setFormValues} onSubmit={validateForm} onReset={resetForm} isValidating={isValidating} activeMenu={activeMenu} />
+          )}
         </main>
         <Footer />
       </div>

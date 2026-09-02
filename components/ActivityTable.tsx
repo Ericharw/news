@@ -532,9 +532,8 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
           <div className="relative">
             <button
               onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-              className={`flex items-center gap-2 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-all shadow-2xs ${
-                hasActiveFilters ? "border-[#0072CE] text-[#0072CE] bg-sky-50/80 ring-2 ring-[#0072CE]/20 font-bold" : ""
-              }`}
+              className={`flex items-center gap-2 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-all shadow-2xs ${hasActiveFilters ? "border-[#0072CE] text-[#0072CE] bg-sky-50/80 ring-2 ring-[#0072CE]/20 font-bold" : ""
+                }`}
             >
               <Filter className="w-3.5 h-3.5 text-slate-500" />
               <span>Filter {hasActiveFilters ? `(${activeFiltersCount})` : ""}</span>
@@ -771,14 +770,14 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
               {filterTanggalOption === "1hari"
                 ? "1 Hari"
                 : filterTanggalOption === "1minggu"
-                ? "1 Minggu"
-                : filterTanggalOption === "1bulan"
-                ? "1 Bulan"
-                : filterTanggalOption === "1tahun"
-                ? "1 Tahun"
-                : filterTanggalCustom && filterTanggalCustomEnd
-                ? `${filterTanggalCustom} s.d ${filterTanggalCustomEnd}`
-                : filterTanggalCustom || filterTanggalCustomEnd || "Rentang"}
+                  ? "1 Minggu"
+                  : filterTanggalOption === "1bulan"
+                    ? "1 Bulan"
+                    : filterTanggalOption === "1tahun"
+                      ? "1 Tahun"
+                      : filterTanggalCustom && filterTanggalCustomEnd
+                        ? `${filterTanggalCustom} s.d ${filterTanggalCustomEnd}`
+                        : filterTanggalCustom || filterTanggalCustomEnd || "Rentang"}
               <button
                 onClick={() => {
                   setFilterTanggalOption("all");
@@ -983,11 +982,10 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                   {showEllipsis && <span className="px-1 text-slate-400">...</span>}
                   <button
                     onClick={() => setCurrentPage(page)}
-                    className={`w-8 h-8 rounded-xl font-extrabold flex items-center justify-center transition-all ${
-                      currentPage === page
+                    className={`w-8 h-8 rounded-xl font-extrabold flex items-center justify-center transition-all ${currentPage === page
                         ? "bg-[#0072CE] text-white shadow-xs"
                         : "border border-slate-200 text-slate-700 hover:bg-slate-100"
-                    }`}
+                      }`}
                   >
                     {page}
                   </button>
