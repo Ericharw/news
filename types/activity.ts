@@ -65,8 +65,17 @@ export type ActiveMenuType =
   | "master-keyword"
   | "master-jenis-biaya"
   | "master-grey-area"
+  | "master-user"
   | "user-form"
   | "riwayat-user"
   | "profile";
+
+export interface MasterUserItem {
+  id: number;
+  username: string;
+  nama: string;
+  role: string;
+  createdAt?: string;
+}
 
 

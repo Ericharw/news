@@ -32,10 +32,69 @@ function sign(value: string) {
   return createHmac("sha256", sessionSecret).update(value).digest("base64url");
 }
 
+export function hashPassword(password: string): string {
+  return createHmac("sha256", sessionSecret).update(password).digest("hex");
+}
+
+function hashPasswordWithSecret(password: string, secret: string): string {
+  return createHmac("sha256", secret).update(password).digest("hex");
+}
+
 export function authenticate(username: string, password: string): AuthUser | null {
   const account = accounts.find((item) => item.username === username.trim().toLowerCase() && item.password === password);
   if (!account) return null;
   return { id: account.id, username: account.username, nama: account.nama, role: account.role };
+}
+
+export async function authenticateWithDB(username: string, password: string): Promise<AuthUser | null> {
+  // 1. Cek akun statis terlebih dahulu
+  const staticAccount = accounts.find(
+    (item) => item.username === username.trim().toLowerCase() && item.password === password
+  );
+  if (staticAccount) {
+    return { id: staticAccount.id, username: staticAccount.username, nama: staticAccount.nama, role: staticAccount.role };
+  }
+
+  // 2. Cek di database master_users
+  try {
+    const pool = (await import("@/lib/db")).default;
+    try {
+      const passwordHash = hashPassword(password);
+      const result = await pool.query(
+        "SELECT id, username, nama, role FROM master_users WHERE username = $1 AND password_hash IN ($2, $3) LIMIT 1;",
+        [
+          username.trim().toLowerCase(),
+          passwordHash,
+          hashPasswordWithSecret(password, "development-only-change-this-secret"),
+        ]
+      );
+      if (result.rows.length > 0) {
+        const row = result.rows[0];
+        const validRoles = ["ADMIN", "PKU", "JAR", "K3L_KAM"];
+        const role = validRoles.includes(row.role) ? (row.role as AppRole) : "PKU";
+        return { id: `db-${row.id}`, username: row.username, nama: row.nama, role };
+      }
+    } catch (masterError) {
+      console.warn("authenticateWithDB: master_users check failed, checking legacy users:", masterError);
+    }
+
+    // 3. Cek akun lama pada tabel admin_users
+    const legacyResult = await pool.query(
+      "SELECT id, username, nama, role FROM admin_users WHERE LOWER(username) = LOWER($1) AND password = $2 LIMIT 1;",
+      [username.trim(), password]
+    );
+    if (legacyResult.rows.length > 0) {
+      const row = legacyResult.rows[0];
+      const validRoles = ["ADMIN", "PKU", "JAR", "K3L_KAM"];
+      const normalizedRole = String(row.role || "ADMIN").toUpperCase();
+      const role = validRoles.includes(normalizedRole) ? (normalizedRole as AppRole) : "ADMIN";
+      return { id: `legacy-${row.id}`, username: row.username, nama: row.nama || row.username, role };
+    }
+  } catch (err) {
+    console.warn("authenticateWithDB: DB check failed, fallback only:", err);
+  }
+
+  return null;
 }
 
 export function createSession(user: AuthUser) {

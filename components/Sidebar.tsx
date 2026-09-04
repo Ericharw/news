@@ -18,7 +18,8 @@ import {
   UserCheck,
   FileEdit,
   RefreshCw,
-  History
+  History,
+  Users
 } from "lucide-react";
 import { ActiveMenuType, UserRole } from "@/types/activity";
 
@@ -51,7 +52,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     activeMenu === "master-program" ||
     activeMenu === "master-keyword" ||
     activeMenu === "master-jenis-biaya" ||
-    activeMenu === "master-grey-area";
+    activeMenu === "master-grey-area" ||
+    activeMenu === "master-user";
 
   return (
     <aside
@@ -303,6 +305,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     >
                       <HelpCircle className="w-3.5 h-3.5 text-amber-300 shrink-0" />
                       <span>Master Grey Area</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleMenuClick("master-user")}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                        activeMenu === "master-user"
+                          ? "bg-violet-600 text-white shadow-xs font-bold"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                      }`}
+                    >
+                      <Users className="w-3.5 h-3.5 shrink-0" />
+                      <span>Master User</span>
                     </button>
                   </div>
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import pool from "@/lib/db";
-import { authenticate, createSession, sessionCookie } from "@/lib/auth";
+import { authenticateWithDB, createSession, sessionCookie } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     }
 
     const cleanUsername = username.trim();
-    const user = authenticate(cleanUsername, password);
+    const user = await authenticateWithDB(cleanUsername, password);
     if (!user) {
       try {
         await pool.query("INSERT INTO admin_login_logs (username, status) VALUES ($1, $2)", [cleanUsername, "GAGAL_PASSWORD_SALAH"]);
@@ -43,3 +43,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

@@ -13,6 +13,7 @@ import { MasterProgramView } from "@/components/MasterProgramView";
 import { MasterKeywordView } from "@/components/MasterKeywordView";
 import { MasterJenisBiayaView } from "@/components/MasterJenisBiayaView";
 import { MasterGreyAreaView } from "@/components/MasterGreyAreaView";
+import { MasterUserView } from "@/components/MasterUserView";
 import { ProfileSettingsView } from "@/components/ProfileSettingsView";
 import { UserFormView } from "@/components/UserFormView";
 import { LandingPage } from "@/components/LandingPage";
@@ -38,6 +39,7 @@ function AdminShell({ activeMenu, children }: { activeMenu: ActiveMenuType; chil
       "master-keyword": "/master-keyword",
       "master-jenis-biaya": "/master-jenis-biaya",
       "master-grey-area": "/master-grey-area",
+      "master-user": "/master-user",
       profile: "/data-kegiatan/profile",
     };
     window.location.href = paths[menu] || "/data-kegiatan";
@@ -120,6 +122,7 @@ function AdminDataKegiatan() {
       "master-keyword": "/master-keyword",
       "master-jenis-biaya": "/master-jenis-biaya",
       "master-grey-area": "/master-grey-area",
+      "master-user": "/master-user",
       profile: "/data-kegiatan/profile",
     };
     window.location.href = paths[menu] || "/data-kegiatan";
@@ -200,6 +203,7 @@ function AdminRoutePage({ menu }: { menu: ActiveMenuType }) {
   if (menu === "master-keyword") return <AdminShell activeMenu={menu}><MasterKeywordView /></AdminShell>;
   if (menu === "master-jenis-biaya") return <AdminShell activeMenu={menu}><MasterJenisBiayaView /></AdminShell>;
   if (menu === "master-grey-area") return <AdminShell activeMenu={menu}><MasterGreyAreaView /></AdminShell>;
+  if (menu === "master-user") return <AdminShell activeMenu={menu}><MasterUserView /></AdminShell>;
   if (menu === "profile") return <AdminShell activeMenu={menu}><ProfileSettingsView /></AdminShell>;
   return <AdminShell activeMenu="tambah-kegiatan"><TambahKegiatanView formValues={formValues} setFormValues={setFormValues} onSubmit={validateForm} onReset={resetForm} onBackToData={() => { window.location.href = "/data-kegiatan"; }} isValidating={isValidating} /><ValidationPreviewModal isOpen={isPreviewOpen} isSafe={isSafe} detectedKeywords={detectedKeywords} detectedGreyAreas={detectedGreyAreas} formValues={formValues} onClose={() => setIsPreviewOpen(false)} onConfirmSubmit={confirmSubmit} isSubmitting={isSubmitting} /></AdminShell>;
 }

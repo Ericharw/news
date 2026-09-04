@@ -45,7 +45,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
 
   // Multi-filter internal state for Admin Data Kegiatan
   const [filterNamaProgram, setFilterNamaProgram] = useState("all");
-  const [filterTanggalOption, setFilterTanggalOption] = useState("all"); // 'all' | '1hari' | '1minggu' | '1bulan' | '1tahun' | 'custom'
+  const [filterTanggalOption, setFilterTanggalOption] = useState("all"); 
   const [filterTanggalCustom, setFilterTanggalCustom] = useState("");
   const [filterTanggalCustomEnd, setFilterTanggalCustomEnd] = useState("");
   const [filterStatusNac, setFilterStatusNac] = useState("all");
