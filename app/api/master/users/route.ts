@@ -34,42 +34,52 @@ export async function GET() {
   try {
     await ensureUsersTable();
     const result = await pool.query(`
-      SELECT id, username, nama, UPPER(role) AS role, created_at
-      FROM master_users
-      UNION ALL
-      SELECT -legacy.id AS id,
-             legacy.username,
-             COALESCE(legacy.nama, legacy.username) AS nama,
-             UPPER(COALESCE(legacy.role, 'PKU')) AS role,
-             legacy.created_at
-      FROM admin_users AS legacy
-      WHERE NOT EXISTS (
-        SELECT 1
-        FROM master_users AS master
-        WHERE LOWER(master.username) = LOWER(legacy.username)
-      )
-      UNION ALL
-      SELECT built_in.id,
-             built_in.username,
-             built_in.nama,
-             built_in.role,
-             CURRENT_TIMESTAMP AS created_at
-      FROM (VALUES
-        (-1001, 'pku', 'PKU', 'PKU'),
-        (-1002, 'jar', 'JAR', 'JAR'),
-        (-1003, 'k3l_kam', 'K3L & KAM', 'K3L_KAM')
-      ) AS built_in(id, username, nama, role)
-      WHERE NOT EXISTS (
-        SELECT 1
-        FROM master_users AS master
-        WHERE LOWER(master.username) = LOWER(built_in.username)
-      )
-      AND NOT EXISTS (
-        SELECT 1
+      SELECT * FROM (
+        SELECT id, username, nama, UPPER(role) AS role, created_at
+        FROM master_users
+        UNION ALL
+        SELECT -legacy.id AS id,
+               legacy.username,
+               COALESCE(legacy.nama, legacy.username) AS nama,
+               UPPER(COALESCE(legacy.role, 'PKU')) AS role,
+               legacy.created_at
         FROM admin_users AS legacy
-        WHERE LOWER(legacy.username) = LOWER(built_in.username)
-      )
-      ORDER BY id ASC;
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM master_users AS master
+          WHERE LOWER(master.username) = LOWER(legacy.username)
+        )
+        UNION ALL
+        SELECT built_in.id,
+               built_in.username,
+               built_in.nama,
+               built_in.role,
+               CURRENT_TIMESTAMP AS created_at
+        FROM (VALUES
+          (-1001, 'pku', 'PKU', 'PKU'),
+          (-1002, 'jar', 'JAR', 'JAR'),
+          (-1003, 'k3l_kam', 'K3L & KAM', 'K3L_KAM')
+        ) AS built_in(id, username, nama, role)
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM master_users AS master
+          WHERE LOWER(master.username) = LOWER(built_in.username)
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM admin_users AS legacy
+          WHERE LOWER(legacy.username) = LOWER(built_in.username)
+        )
+      ) AS all_users
+      ORDER BY 
+        CASE UPPER(role)
+          WHEN 'ADMIN' THEN 1
+          WHEN 'JAR' THEN 2
+          WHEN 'K3L_KAM' THEN 3
+          WHEN 'PKU' THEN 4
+          ELSE 5
+        END ASC,
+        username ASC;
     `);
     const users: MasterUserItem[] = result.rows.map((row) => ({
       id: row.id,

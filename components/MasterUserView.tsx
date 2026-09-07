@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useMemo } from "react";
 import { MasterUserItem } from "@/types/activity";
@@ -18,7 +18,16 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-const ROLE_OPTIONS = ["ADMIN", "PKU", "JAR", "K3L_KAM"];
+const ROLE_OPTIONS = ["ADMIN", "JAR", "K3L_KAM", "PKU"];
+
+const ROLE_ORDER: Record<string, number> = {
+  ADMIN: 1,
+  JAR: 2,
+  K3L_KAM: 3,
+  "K3L & KAM": 3,
+  "K3L&KAM": 3,
+  PKU: 4,
+};
 
 const ROLE_BADGE: Record<string, string> = {
   ADMIN: "bg-rose-100 text-rose-700 border border-rose-200",
@@ -185,8 +194,12 @@ export const MasterUserView: React.FC = () => {
           u.role.toLowerCase().includes(q)
       )
       .sort((a, b) => {
-        const adminOrder = Number(b.role === "ADMIN") - Number(a.role === "ADMIN");
-        return adminOrder || a.username.localeCompare(b.username, "id", { sensitivity: "base" });
+        const orderA = ROLE_ORDER[(a.role || "").toUpperCase()] ?? 99;
+        const orderB = ROLE_ORDER[(b.role || "").toUpperCase()] ?? 99;
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+        return a.username.localeCompare(b.username, "id", { sensitivity: "base" });
       });
   }, [users, searchQuery]);
 
