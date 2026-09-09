@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { namaProgram, subjekKegiatan, jenisBiaya, objekKegiatan, tanggalAwal, batch } = body;
 
-    if (!namaProgram || !subjekKegiatan || !jenisBiaya) {
+    if (!namaProgram?.trim() || !subjekKegiatan?.trim() || !jenisBiaya?.trim() || !objekKegiatan?.trim() || !tanggalAwal?.trim()) {
       return NextResponse.json(
         { success: false, error: "Harap lengkapi seluruh kolom bertanda bintang (*)." },
         { status: 400 }

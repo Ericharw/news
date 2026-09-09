@@ -884,7 +884,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
         {/* Chart Visualizations Container */}
         <div className="p-5 sm:p-6 space-y-6">
           {/* Quick Summary Chips & Legend Banner */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <div className="p-3 bg-blue-50/70 border border-blue-100 rounded-2xl">
               <p className="text-[11px] font-bold text-blue-800">Program Memiliki Data</p>
               <p className="text-lg font-black text-[#0072CE] mt-0.5">
@@ -898,15 +898,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
               </p>
             </div>
             <div className="p-3 bg-rose-50/70 border border-rose-100 rounded-2xl">
-              <p className="text-[11px] font-bold text-rose-800">Program Berisiko NAC</p>
+              <p className="text-[11px] font-bold text-rose-800">Kegiatan Berisiko NAC</p>
               <p className="text-lg font-black text-rose-600 mt-0.5">
-                {programBreakdown.filter((p) => p.merah > 0).length} <span className="text-xs font-semibold text-rose-600">Program</span>
+                {programBreakdown.reduce((acc, curr) => acc + curr.merah, 0)} <span className="text-xs font-semibold text-rose-600">Kegiatan</span>
               </p>
             </div>
             <div className="p-3 bg-emerald-50/70 border border-emerald-100 rounded-2xl">
-              <p className="text-[11px] font-bold text-emerald-800">Program 100% Aman</p>
+              <p className="text-[11px] font-bold text-emerald-800">Kegiatan 100% Aman</p>
               <p className="text-lg font-black text-emerald-600 mt-0.5">
-                {programBreakdown.filter((p) => p.hijau === p.total && p.total > 0).length} <span className="text-xs font-semibold text-emerald-600">Program</span>
+                {programBreakdown.reduce((acc, curr) => acc + curr.hijau, 0)} <span className="text-xs font-semibold text-emerald-600">Kegiatan</span>
+              </p>
+            </div>
+            <div className="p-3 bg-slate-100/70 border border-slate-200 rounded-2xl">
+              <p className="text-[11px] font-bold text-slate-700">Kegiatan Grey Area</p>
+              <p className="text-lg font-black text-slate-700 mt-0.5">
+                {programBreakdown.reduce((acc, curr) => acc + curr.abu, 0)} <span className="text-xs font-semibold text-slate-500">Kegiatan</span>
               </p>
             </div>
           </div>

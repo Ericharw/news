@@ -21,7 +21,7 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
   onSubmit,
   onReset,
   isValidating = false,
-  requiredObject = false
+  requiredObject = true
 }) => {
   const datePickerRef = React.useRef<HTMLInputElement>(null);
 
@@ -134,7 +134,7 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label className="block font-bold text-slate-800">
-              Objek Kegiatan (Judul Diklat) {requiredObject && <span className="text-rose-500">*</span>}
+              Objek Kegiatan (Judul Diklat) <span className="text-rose-500">*</span>
             </label>
             <span className="text-[11px] text-slate-400 font-medium">
               {(formValues.objekKegiatan || "").length}/15
@@ -142,7 +142,7 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
           </div>
           <textarea
             rows={2}
-            required={requiredObject}
+            required
             maxLength={15}
             placeholder="Contoh: ENTREPRENEUR"
             value={formValues.objekKegiatan}

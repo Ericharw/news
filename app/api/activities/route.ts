@@ -114,7 +114,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { namaProgram, subjekKegiatan, jenisBiaya, objekKegiatan, tanggalAwal, batch, statusNac, catatanNac } = body;
 
-    if (!namaProgram || !subjekKegiatan || !jenisBiaya) {
+    if (!namaProgram?.trim() || !subjekKegiatan?.trim() || !jenisBiaya?.trim() || !objekKegiatan?.trim() || !tanggalAwal?.trim()) {
       return NextResponse.json(
         { success: false, error: "Harap lengkapi kolom yang bertanda bintang (*)." },
         { status: 400 }

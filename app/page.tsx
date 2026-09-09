@@ -156,8 +156,8 @@ function AdminRoutePage({ menu }: { menu: ActiveMenuType }) {
 
   const validateForm = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!formValues.namaProgram || !formValues.subjekKegiatan || !formValues.jenisBiaya) {
-      await Swal.fire({ icon: "warning", title: "Input Tidak Lengkap", text: "Harap lengkapi kolom yang bertanda bintang (*).", confirmButtonColor: "#0072CE" });
+    if (!formValues.namaProgram?.trim() || !formValues.subjekKegiatan?.trim() || !formValues.jenisBiaya?.trim() || !formValues.objekKegiatan?.trim() || !formValues.tanggalAwal?.trim()) {
+      await Swal.fire({ icon: "warning", title: "Input Tidak Lengkap", text: "Harap lengkapi semua kolom yang bertanda bintang (*).", confirmButtonColor: "#0072CE" });
       return;
     }
     setIsValidating(true);
@@ -232,8 +232,8 @@ function UserInputPage() {
 
   const validateForm = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!formValues.namaProgram || !formValues.subjekKegiatan || !formValues.jenisBiaya) {
-      await Swal.fire({ icon: "warning", title: "Input Tidak Lengkap", text: "Harap lengkapi kolom yang wajib diisi.", confirmButtonColor: "#0072CE" });
+    if (!formValues.namaProgram?.trim() || !formValues.subjekKegiatan?.trim() || !formValues.jenisBiaya?.trim() || !formValues.objekKegiatan?.trim() || !formValues.tanggalAwal?.trim()) {
+      await Swal.fire({ icon: "warning", title: "Input Tidak Lengkap", text: "Harap lengkapi semua kolom yang bertanda bintang (*).", confirmButtonColor: "#0072CE" });
       return;
     }
 
