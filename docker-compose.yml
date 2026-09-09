@@ -1,20 +1,23 @@
-services:
-  postgres:
-    image: postgres:18
-    container_name: news-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: news
-      POSTGRES_USER: news_user
-      POSTGRES_PASSWORD: Ericha12_
-    ports:
-      - "5433:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql
-      - ./scripts/news.sql:/docker-entrypoint-initdb.d/news.sql
-    networks:
-      - news_network
+# services postgres dinonaktifkan agar Docker dan Local menggunakan 1 database yang sama (PostgreSQL lokal di host:5432).
+# Jika ingin menjalankan postgres via docker kembali, cukup hilangkan tanda komentar (#).
+# services:
+#   postgres:
+#     image: postgres:18
+#     container_name: news-postgres
+#     restart: unless-stopped
+#     environment:
+#       POSTGRES_DB: news
+#       POSTGRES_USER: news_user
+#       POSTGRES_PASSWORD: Ericha12_
+#     ports:
+#       - "5433:5432"
+#     volumes:
+#       - postgres_data:/var/lib/postgresql
+#       - ./scripts/news.sql:/docker-entrypoint-initdb.d/news.sql
+#     networks:
+#       - news_network
 
+services:
   nextjs:
     build:
       context: .
@@ -23,15 +26,15 @@ services:
     restart: unless-stopped
     env_file:
       - .env.production
-    depends_on:
-      - postgres
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8080:3000"
     networks:
       - news_network
 
-volumes:
-  postgres_data:
+# volumes:
+#   postgres_data:
 
 networks:
   news_network:
